@@ -1,27 +1,16 @@
 using UnityEditor.ShaderKeywordFilter;
 
-public enum PieceType { 
-None, Pawn, Knight, Bishop, Rook, Queen, King 
+public static class PieceType{
+    public const int none = 0;
+    public const int pawn = 1;
+    public const int bishop = 2;
+    public const int knight = 3;
+    public const int rook = 4;
+    public const int queen = 5;
+    public const int king = 6;
+    public const int white = 8;
+    public const int black = 16;
 }
 
 public enum PieceColor { None, White, Black }
 public enum CastlingFlags {KingSide, QueenSide, Both,None}
-
-public struct ChessPiece {
-    public PieceType type;
-    public PieceColor color;
-
-    public ChessPiece(PieceType type, PieceColor color) {
-        this.type = type;
-        this.color = color;
-    }
-    public override bool Equals(object obj)
-    {  
-        if (obj == null || GetType() != obj.GetType())
-        {
-            return false;
-        }
-        
-        return ((ChessPiece)obj).color == color && ((ChessPiece)obj).type == type;
-    }
-}

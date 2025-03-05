@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Security.Cryptography.X509Certificates;
 using TMPro;
+using Unity.VisualScripting;
 using UnityEditor.PackageManager;
 using UnityEngine;
 
@@ -19,13 +20,21 @@ public struct BitBoard
     public static BitBoard operator ^(BitBoard a, BitBoard b) 
     => new BitBoard(a._squares ^ b._squares);
     public static BitBoard operator >>(BitBoard a, int b) 
-    => new BitBoard(a._squares >> b);
+    => new BitBoard(b > 0 ? a._squares >> b : a._squares << -b);
     public static BitBoard operator <<(BitBoard a, int b) 
-    => new BitBoard(a._squares >> b);
+    => new BitBoard(b > 0 ? a._squares << b : a._squares >> -b);
     public static bool operator ==(BitBoard a, int b)
     => (int)a._squares == b;
     public static bool operator !=(BitBoard a, int b)
     => (int)a._squares != b;
+    public static bool operator <(BitBoard a, int b)
+    => (int)a._squares < b;
+    public static bool operator >(BitBoard a, int b)
+    => (int)a._squares > b;
+    public static bool operator <=(BitBoard a, int b)
+    => (int)a._squares <= b;
+    public static bool operator >= (BitBoard a, int b)
+    => (int)a._squares >= b;
     public static BitBoard operator ~(BitBoard a)
     => new BitBoard(~a._squares);
     static readonly private long deBruijn = 0x03f79d71b4cb0a89L;
@@ -52,6 +61,8 @@ public struct BitBoard
         ulong returno = 1ul<< a;
         return new BitBoard(returno);
     }
+    public static explicit operator BitBoard(ulong a) => new BitBoard(a);
+    
     public BitBoard NEshift(){return new BitBoard(_squares << 9);}
     public BitBoard NWshift(){return new BitBoard(_squares << 7);}
     public BitBoard Nshift(){return new BitBoard(_squares << 8);}
