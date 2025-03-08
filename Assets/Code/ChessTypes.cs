@@ -12,5 +12,4 @@ public static class PieceType{
     public const int black = 16;
 }
 
-public enum PieceColor { None, White, Black }
 public enum CastlingFlags {KingSide, QueenSide, Both,None}

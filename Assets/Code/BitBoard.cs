@@ -23,21 +23,44 @@ public struct BitBoard
     => new BitBoard(b > 0 ? a._squares >> b : a._squares << -b);
     public static BitBoard operator <<(BitBoard a, int b) 
     => new BitBoard(b > 0 ? a._squares << b : a._squares >> -b);
-    public static bool operator ==(BitBoard a, int b)
-    => (int)a._squares == b;
-    public static bool operator !=(BitBoard a, int b)
-    => (int)a._squares != b;
-    public static bool operator <(BitBoard a, int b)
-    => (int)a._squares < b;
-    public static bool operator >(BitBoard a, int b)
-    => (int)a._squares > b;
-    public static bool operator <=(BitBoard a, int b)
-    => (int)a._squares <= b;
-    public static bool operator >= (BitBoard a, int b)
-    => (int)a._squares >= b;
+    public static bool operator ==(BitBoard a, ulong b)
+    => a._squares == b;
+    public static bool operator !=(BitBoard a, ulong b)
+    => a._squares != b;
+    public static bool operator <(BitBoard a, ulong b)
+    => a._squares < b;
+    public static bool operator >(BitBoard a, ulong b)
+    => a._squares > b;
+    public static bool operator <=(BitBoard a, ulong b)
+    => a._squares <= b;
+    public static bool operator >= (BitBoard a, ulong b)    
+    => a._squares >= b;
+    public static BitBoard operator -(BitBoard a, BitBoard b)
+    => new BitBoard(a._squares - b._squares);
+    public static BitBoard operator +(BitBoard a, BitBoard b)
+    => new BitBoard(a._squares + b._squares);
+    public static BitBoard operator *(BitBoard a, BitBoard b)
+    => new BitBoard(a._squares * b._squares);
     public static BitBoard operator ~(BitBoard a)
     => new BitBoard(~a._squares);
-    static readonly private long deBruijn = 0x03f79d71b4cb0a89L;
+    public static explicit operator BitBoard(ulong a) 
+    => new BitBoard(a);
+    public static BitBoard zero => new BitBoard(0);
+     public static explicit operator BitBoard(int a){
+        if(a > 63){
+            Debug.Log("not in range");
+            throw new IndexOutOfRangeException();
+        }
+        ulong returno = 1ul<<(a);
+        return new BitBoard(returno);
+    }
+    public static explicit operator ulong(BitBoard a)
+    => a._squares;
+    public override string ToString()
+    {
+        return _squares.ToString();//Convert.ToString((long)_squares, 2);
+    }
+    static readonly private ulong deBruijn = 0x03f79d71b4cb0a89L;
     static readonly private int[] magicTable = {
       0, 1,48, 2,57,49,28, 3,
      61,58,50,42,38,29,17, 4,
@@ -49,19 +72,10 @@ public struct BitBoard
      25,14,19, 9,13, 8, 7, 6,
     };
 
-    static public int bitscan(long b) {
-       int idx = (int)(((b & -b) * deBruijn) >> 58);
+    static public int bitscan(BitBoard b) {
+       int idx = (int)(((ulong)b * deBruijn) >> 58);
        return magicTable[idx];
     }
-    public static explicit operator BitBoard(int a){
-        if(a > 63){
-            Debug.Log("not in range");
-            throw new IndexOutOfRangeException();
-        }
-        ulong returno = 1ul<< a;
-        return new BitBoard(returno);
-    }
-    public static explicit operator BitBoard(ulong a) => new BitBoard(a);
     
     public BitBoard NEshift(){return new BitBoard(_squares << 9);}
     public BitBoard NWshift(){return new BitBoard(_squares << 7);}
@@ -71,31 +85,31 @@ public struct BitBoard
     public BitBoard Sshift( ){return new BitBoard(_squares >> 8);}
     public BitBoard Eshift( ){return new BitBoard(_squares >> 1);}
     public BitBoard Wshift( ){return new BitBoard(_squares << 1);}
-    BitBoard flipVertical() {
+public static BitBoard flipVertical(BitBoard a) {
    const ulong k1 = (0x00FF00FF00FF00FF);
    const ulong k2 = (0x0000FFFF0000FFFF);
-   ulong x = _squares;
+   ulong x = a._squares;
    x = ((x >>  8) & k1) | ((x & k1) <<  8);
    x = ((x >> 16) & k2) | ((x & k2) << 16);
    x = ( x >> 32)       | ( x       << 32);
    return new BitBoard(x);
 }
-BitBoard mirrorHorizontal () {
+public static BitBoard mirrorHorizontal (BitBoard a) {
    const ulong k1 = (0x5555555555555555);
    const ulong k2 = (0x3333333333333333);
    const ulong k4 = (0x0f0f0f0f0f0f0f0f);
-   ulong x = _squares;
+   ulong x = a._squares;
    x = ((x >> 1) & k1) | ((x & k1) << 1);
    x = ((x >> 2) & k2) | ((x & k2) << 2);
    x = ((x >> 4) & k4) | ((x & k4) << 4);
    return new BitBoard(x);
 }
-BitBoard flipDiagA1H8() {
+public static BitBoard flipDiagA1H8(BitBoard a) {
    ulong t;
    const ulong k1 = (0x5500550055005500);
    const ulong k2 = (0x3333000033330000);
    const ulong k4 = (0x0f0f0f0f00000000);
-   ulong x = _squares;
+   ulong x = a._squares;
    t  = k4 & (x ^ (x << 28));
    x ^=       t ^ (t >> 28) ;
    t  = k2 & (x ^ (x << 14));
@@ -103,5 +117,8 @@ BitBoard flipDiagA1H8() {
    t  = k1 & (x ^ (x <<  7));
    x ^=       t ^ (t >>  7) ;
    return new BitBoard(x);
+}
+public static BitBoard bitReversal(BitBoard a){
+    return mirrorHorizontal(flipVertical(a));
 }
 }

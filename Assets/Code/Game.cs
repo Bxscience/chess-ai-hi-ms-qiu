@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using Unity.VisualScripting;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.Assertions.Must;
@@ -15,6 +16,7 @@ public class Game : MonoBehaviour
     private Position gameState;
     private const string startFEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
     private GameObject[] gameObjectBoard = new GameObject[64];
+    private GameObject[] tiles = new GameObject[64];
     private int[] board = new int[64];
     private Transform selectedTile;
     private bool isMakingMove = false;
@@ -27,32 +29,26 @@ public class Game : MonoBehaviour
     }
     private void OnEnable()
     {
-        mouseInputAction.PlayerInputs.Click.performed += dosomething;
+        mouseInputAction.PlayerInputs.Click.performed += onClick;
         mouseInputAction.Enable();
     }
 
     void OnDisable()
     {
+        gameState = new Position();
         mouseInputAction.Disable();
-        mouseInputAction.PlayerInputs.Click.performed -= dosomething;
-    }
-
-    private void dosomething(InputAction.CallbackContext context)
-    {
-        Debug.Log("please work");
+        mouseInputAction.PlayerInputs.Click.performed -= onClick;
     }
 
     void Start()
     {
+        gameState = new Position();
         initalizeGame(startFEN );
         initalizeBoard();
-        //gameState = new Position(startFEN);
     }
     void Update()
     {
-        if(Input.GetMouseButtonDown(0)){
-            onClick();
-        }
+
     }
     //For initalizing the internal movement and bitboards
     void initalizeGame(string FENString)
@@ -67,9 +63,9 @@ public class Game : MonoBehaviour
         gameState = new Position();*/
     }
     //Player input
-    public void onClick()
+    public void onClick(InputAction.CallbackContext context)
     {
-        Debug.Log("clicked");
+        int sideToMove = gameState.state.Peek().NextToMove;
         Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
         if (isMakingMove & selectedTile != null)
         {
@@ -82,15 +78,23 @@ public class Game : MonoBehaviour
                 Move currentMove = new Move(selectedTileIndex, toTileIndex,board[selectedTileIndex], null);
                 selectedTile.GetComponent<Renderer>().material.color = lastTileColor;
                 updateBoardWithMove(currentMove);
+                gameState.state.Push(new PositionState(currentMove,CastlingFlags.Both, CastlingFlags.Both, sideToMove^24, 0, 1, 0, null, null));
             }
         }
-        else if (Physics.Raycast(ray, out RaycastHit hit, 10000, 1 << 6) && gameObjectBoard[(int)(hit.transform.position.x + hit.transform.position.z * 8)] != null)
+        else if (Physics.Raycast(ray, out RaycastHit hit, 10000, 1 << 6) && gameObjectBoard[(int)(hit.transform.position.x + hit.transform.position.z * 8)] != null && board[(int)(hit.transform.position.x + hit.transform.position.z * 8)] >> 3 << 3 == (int)sideToMove)
         {
             selectedTile = hit.transform;
             Renderer renderer = selectedTile.GetComponent<Renderer>();
             lastTileColor = renderer.material.color;
             renderer.material.color = Color.yellow;
             isMakingMove = true;
+            List<Move> moves = MoveGenerator.generateMoves(gameState);
+            // foreach (Move move in moves)
+            // {
+            //     if(move.SourceSquare == (int)(hit.transform.position.x + hit.transform.position.z * 8)){
+            //         tiles[move.TargetSquare].GetComponent<Renderer>().material.color = Color.yellow;
+            //     }
+            // }
         }
     }
     //For initalizing game objects
@@ -101,10 +105,9 @@ public class Game : MonoBehaviour
             for (int j = 0; j < 8; j++)
             {
                 int index = i * 8 + j;
-                GameObject newTile = Instantiate(tile, new Vector3(i, 0, j), Quaternion.identity);
-                Renderer mat = newTile.GetComponent<Renderer>();
+                tiles[index] = Instantiate(tile, new Vector3(i, 0, j), Quaternion.identity);
+                Renderer mat = tiles[index].GetComponent<Renderer>();
                 mat.material.color = (i + j) % 2 == 0 ? Color.white : Color.black;
-                Debug.Log("index: " + index + " piece: " + pieces[board[index] & 7] + " int: " + board[index]);
                 if ((board[index] & 7) != 0)
                 {
                     gameObjectBoard[index] = Instantiate(pieces[board[index] & 7], new Vector3(j, 0, i), Quaternion.identity);
@@ -173,13 +176,13 @@ public class Game : MonoBehaviour
             }
         }
     }
-    private PieceColor sideParse(string FENPosition)
+    private int sideParse(string FENPosition)
     {
         if (FENPosition == "w")
         {
-            return PieceColor.White;
+            return 8;
         }
-        return PieceColor.Black;
+        return 16;
     }
     private CastlingFlags[] castlingRightsParse(string FENPosition)
     {

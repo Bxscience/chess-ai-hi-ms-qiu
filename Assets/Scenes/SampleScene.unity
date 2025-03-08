@@ -338,12 +338,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   tile: {fileID: 8316051736524323117, guid: dd68ac8e4f11d4258b30a492d872a8b2, type: 3}
-  pawn: {fileID: 100000, guid: 1ae3b6cad3254b848942cea678f244c7, type: 3}
-  bishop: {fileID: 100000, guid: 9872e0b509ff2d04299e3fe92e0deacc, type: 3}
-  knight: {fileID: 100000, guid: 3d375d4a1907b3f4098bb64446492fed, type: 3}
-  rook: {fileID: 100000, guid: 4c7fefe9f4d55e44398c01a6266ef093, type: 3}
-  queen: {fileID: 100000, guid: 8d213db23e89f6b4fa3d427f07a32b13, type: 3}
-  king: {fileID: 100000, guid: 0d4dc18442ed9d14698239a5a964f27f, type: 3}
+  pieces:
+  - {fileID: 1101072083774080478, guid: bada16cd702459542a805cf266afcd7b, type: 3}
+  - {fileID: 100000, guid: 1ae3b6cad3254b848942cea678f244c7, type: 3}
+  - {fileID: 100000, guid: 9872e0b509ff2d04299e3fe92e0deacc, type: 3}
+  - {fileID: 100000, guid: 3d375d4a1907b3f4098bb64446492fed, type: 3}
+  - {fileID: 100000, guid: 4c7fefe9f4d55e44398c01a6266ef093, type: 3}
+  - {fileID: 100000, guid: 8d213db23e89f6b4fa3d427f07a32b13, type: 3}
+  - {fileID: 100000, guid: 0d4dc18442ed9d14698239a5a964f27f, type: 3}
 --- !u!4 &1696288652
 Transform:
   m_ObjectHideFlags: 0
