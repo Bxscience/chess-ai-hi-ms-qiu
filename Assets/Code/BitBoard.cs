@@ -10,6 +10,8 @@ using UnityEngine;
 public struct BitBoard 
 {
     private readonly ulong _squares;
+    public static BitBoard zero = new BitBoard(0);
+    public static BitBoard one = new BitBoard(1);
     public BitBoard(ulong bitboard){
         _squares = bitboard;
     }
@@ -45,7 +47,6 @@ public struct BitBoard
     => new BitBoard(~a._squares);
     public static explicit operator BitBoard(ulong a) 
     => new BitBoard(a);
-    public static BitBoard zero => new BitBoard(0);
      public static explicit operator BitBoard(int a){
         if(a > 63){
             Debug.Log("not in range");

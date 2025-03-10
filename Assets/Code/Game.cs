@@ -14,7 +14,7 @@ public class Game : MonoBehaviour
     public GameObject tile;
     public GameObject[] pieces;
     private Position gameState;
-    private const string startFEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+    private const string startFEN = "rnbqkbnr/8/8/8/8/8/8/RNBQKBNR w KQkq - 0 1";
     private GameObject[] gameObjectBoard = new GameObject[64];
     private GameObject[] tiles = new GameObject[64];
     private int[] board = new int[64];
@@ -22,6 +22,8 @@ public class Game : MonoBehaviour
     private bool isMakingMove = false;
     private Color lastTileColor;
     private PlayerInput mouseInputAction;
+    private MoveGenerator moveGenerator = new MoveGenerator();
+    private List<Move> moves;
     Dictionary<char, byte> pieceLookup = new Dictionary<char, byte>() { { 'p', 1 }, { 'b', 2 }, { 'n', 3 }, { 'r', 4 }, { 'q', 5 }, { 'k', 6 } };
     void Awake()
     {
@@ -35,15 +37,25 @@ public class Game : MonoBehaviour
 
     void OnDisable()
     {
-        gameState = new Position();
         mouseInputAction.Disable();
         mouseInputAction.PlayerInputs.Click.performed -= onClick;
     }
 
     void Start()
     {
-        gameState = new Position();
-        initalizeGame(startFEN );
+        initalizeGame(startFEN);
+        BitBoard[] white = new BitBoard[6];
+        BitBoard[] black = new BitBoard[6];
+        for (int j = 0; j < 63; j++)
+        {
+            if (board[j] != 0)
+            {
+                if (board[j] >> 3 == 1) white[(board[j] & 7) - 1] |= (BitBoard)j;
+                else black[(board[j] & 7) - 1] |= (BitBoard)j;
+            }
+        }
+        gameState = new Position(white, black);
+        moveGenerator.initializeLookup();
         initalizeBoard();
     }
     void Update()
@@ -75,10 +87,14 @@ public class Game : MonoBehaviour
                 int selectedTileIndex = (int)(selectedTile.transform.position.x + selectedTile.transform.position.z * 8);
                 int toTileIndex = (int)(hit2.transform.position.x + hit2.transform.position.z * 8);
                 Debug.Log(toTileIndex);
-                Move currentMove = new Move(selectedTileIndex, toTileIndex,board[selectedTileIndex], null);
+                Move currentMove = new Move(selectedTileIndex, toTileIndex, board[selectedTileIndex], null);
                 selectedTile.GetComponent<Renderer>().material.color = lastTileColor;
                 updateBoardWithMove(currentMove);
-                gameState.state.Push(new PositionState(currentMove,CastlingFlags.Both, CastlingFlags.Both, sideToMove^24, 0, 1, 0, null, null));
+                gameState.state.Push(new PositionState(currentMove, CastlingFlags.Both, CastlingFlags.Both, sideToMove ^ 24, 0, 1, 0, null, null));
+                foreach (Move move in moves)
+                {
+                    tiles[move.TargetSquare].GetComponent<Renderer>().material.color = (move.TargetSquare % 8 + move.TargetSquare/8) % 2== 0 ? Color.white: Color.black;
+                }
             }
         }
         else if (Physics.Raycast(ray, out RaycastHit hit, 10000, 1 << 6) && gameObjectBoard[(int)(hit.transform.position.x + hit.transform.position.z * 8)] != null && board[(int)(hit.transform.position.x + hit.transform.position.z * 8)] >> 3 << 3 == (int)sideToMove)
@@ -88,13 +104,11 @@ public class Game : MonoBehaviour
             lastTileColor = renderer.material.color;
             renderer.material.color = Color.yellow;
             isMakingMove = true;
-            List<Move> moves = MoveGenerator.generateMoves(gameState);
-            // foreach (Move move in moves)
-            // {
-            //     if(move.SourceSquare == (int)(hit.transform.position.x + hit.transform.position.z * 8)){
-            //         tiles[move.TargetSquare].GetComponent<Renderer>().material.color = Color.yellow;
-            //     }
-            // }
+            moves = moveGenerator.createMovesAtSquare(gameState, (int)(hit.transform.position.x + hit.transform.position.z * 8));
+            foreach (Move move in moves)
+            {
+                tiles[move.TargetSquare].GetComponent<Renderer>().material.color = Color.yellow;
+            }
         }
     }
     //For initalizing game objects
@@ -120,11 +134,12 @@ public class Game : MonoBehaviour
         }
     }
     //Helper functions
-    void updateBoardWithMove(Move move){
+    void updateBoardWithMove(Move move)
+    {
         board[move.TargetSquare] = board[move.SourceSquare];
         board[move.SourceSquare] = 0;
-        if(gameObjectBoard[move.TargetSquare]) Destroy(gameObjectBoard[move.TargetSquare]);
-        gameObjectBoard[move.SourceSquare].transform.position = new Vector3(move.TargetSquare % 8, 0 ,move.TargetSquare/8);
+        if (gameObjectBoard[move.TargetSquare]) Destroy(gameObjectBoard[move.TargetSquare]);
+        gameObjectBoard[move.SourceSquare].transform.position = new Vector3(move.TargetSquare % 8, 0, move.TargetSquare / 8);
         gameObjectBoard[move.TargetSquare] = gameObjectBoard[move.SourceSquare];
         gameObjectBoard[move.SourceSquare] = null;
     }
