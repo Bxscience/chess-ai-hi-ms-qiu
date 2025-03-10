@@ -10,17 +10,38 @@ public class MoveGenerator
     private BitBoard[,] bishopLookup;
     public void initializeLookup(){
         rookLookup = Position.generateLookupTable(true);
+        bishopLookup = Position.generateLookupTable(false);
     }
     public List<Move> createMovesAtSquare(Position board, int square){
+        BitBoard D = (BitBoard)0xff818181818181ff;
+        BitBoard N = (BitBoard)0x81818181818181ff;
+        BitBoard E = (BitBoard)0xff010101010101ff;
+        BitBoard S = (BitBoard)0xff81818181818181;
+        BitBoard W = (BitBoard)0xff808080808080ff;
+        BitBoard NW = (BitBoard)0x80808080808080ff;
+        BitBoard NE = (BitBoard)0x1010101010101ff;
+        BitBoard SE = (BitBoard)0xff01010101010101;
+        BitBoard SW = (BitBoard)0xff80808080808080;
+        BitBoard[] endPos = {
+        SW,S,S,S,S,S,S,SE,
+         W,D,D,D,D,D,D,E,
+         W,D,D,D,D,D,D,E,
+         W,D,D,D,D,D,D,E,
+         W,D,D,D,D,D,D,E,
+         W,D,D,D,D,D,D,E,
+         W,D,D,D,D,D,D,E,
+        NW,N,N,N,N,N,N,NE
+        };
         List<Move> moves = new List<Move>();
         BitBoard allPieces = board.whitePositions.allPositions | board.blackPositions.allPositions;
         int piece = board.PieceAt(square);
         int playerToMove =board.state.Peek().NextToMove;
-        BitBoard attack = PiecePositions.pieceAttack(square, piece, playerToMove == 8);
-        ulong key = (PrecomputedMagics.RookMagics[square] * (ulong)(attack & allPieces))>> PrecomputedMagics.RookShifts[square];
-        attack = (piece & 7) == 2? bishopLookup[square,(PrecomputedMagics.BishopMagics[square] * (ulong)(attack & allPieces)) >> PrecomputedMagics.BishopShifts[square]]: attack;
-        attack = (piece & 7) == 4? rookLookup[square, key]: attack;
-        attack = (piece & 7) == 5? bishopLookup[square,(PrecomputedMagics.BishopMagics[square] * (ulong)(attack & allPieces)) >> PrecomputedMagics.BishopShifts[square]] | rookLookup[square,( PrecomputedMagics.RookMagics[square] * (ulong)(attack & allPieces)) >> PrecomputedMagics.RookShifts[square]]: attack;
+        BitBoard attack = PiecePositions.pieceAttack(square, piece & 7, playerToMove == 8);
+        attack &= ~endPos[square];
+        attack &= allPieces;
+        attack = (piece & 7) == 2? bishopLookup[square,((ulong)attack * PrecomputedMagics.BishopMagics[square]) >> PrecomputedMagics.BishopShifts[square]]: attack;
+        attack = (piece & 7) == 4? rookLookup[square, ((ulong)attack * PrecomputedMagics.RookMagics[square]) >> PrecomputedMagics.RookShifts[square]]: attack;
+        attack = (piece & 7) == 5? bishopLookup[square,((ulong)attack * PrecomputedMagics.BishopMagics[square]) >> PrecomputedMagics.BishopShifts[square]]|rookLookup[square, ((ulong)attack * PrecomputedMagics.RookMagics[square]) >> PrecomputedMagics.RookShifts[square]] : attack;
         attack &= ~(playerToMove == 8? board.whitePositions.allPositions: board.blackPositions.allPositions);
         for(int i = 0; i < 64; i++)
         {

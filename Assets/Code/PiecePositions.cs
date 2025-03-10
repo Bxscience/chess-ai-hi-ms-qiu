@@ -112,28 +112,39 @@ public class Position
     }
     public void updateBoardWithMove(Move move)
     {
-        if (state.Peek().NextToMove == 8)
-            whitePositions.positions[move.MovedPiece] ^= (BitBoard)move.TargetSquare | (BitBoard)move.SourceSquare;
-        else
-            blackPositions.positions[move.MovedPiece] ^= (BitBoard)move.TargetSquare | (BitBoard)move.SourceSquare;
+        if (state.Peek().NextToMove == 8){
+            whitePositions.positions[(move.MovedPiece & 7)-1] ^= (BitBoard)move.TargetSquare | (BitBoard)move.SourceSquare;
+            for (int i = 0; i < blackPositions.positions.Length; i++)
+            {
+                blackPositions.positions[i] &= ~(BitBoard)move.TargetSquare;
+            }
+            }
+        else{
+            blackPositions.positions[(move.MovedPiece & 7)-1] ^= (BitBoard)move.TargetSquare | (BitBoard)move.SourceSquare;
+            for (int i = 0; i < whitePositions.positions.Length; i++)
+            {
+                whitePositions.positions[i] &= ~(BitBoard)move.TargetSquare;
+            }
+            }
     }
 
     public int PieceAt(int square)
     {
         int returno = 0;
-        BitBoard[] allposition = whitePositions.positions.Union(blackPositions.positions).ToArray();
+        BitBoard[] allposition = whitePositions.positions.Concat(blackPositions.positions).ToArray();
         for (int i = 0; i < allposition.Length; i++)
         {
             if ((allposition[i] & (BitBoard)square ) > 0) 
-                returno = i > 5 ? (i % 6) + 1 | 16 : i + 1 | 8;
+                returno = i > 6 ? (i % 6) + 1 | 16 : i + 1 | 8;
         }
         return returno;
     }
 
     //Generation
-    public static BitBoard[,
-    ] generateLookupTable(bool isRook)
+    public static BitBoard[,] generateLookupTable(bool isRook)
     {
+        BitBoard H = (BitBoard)0x101010101010101;
+        BitBoard H2 = (BitBoard)0x8080808080808080;
         BitBoard D = (BitBoard)0xff818181818181ff;
         BitBoard N = (BitBoard)0x81818181818181ff;
         BitBoard E = (BitBoard)0xff010101010101ff;
@@ -161,10 +172,10 @@ public class Position
             BitBoard[] blockingMasks = createBlockers(mask);
             foreach (BitBoard blocker in blockingMasks)
             {
-                ulong key = isRook ? (ulong)blocker * PrecomputedMagics.RookMagics[i] >> PrecomputedMagics.RookShifts[i] :
+                ulong key = isRook ? ((ulong)blocker * PrecomputedMagics.RookMagics[i]) >> PrecomputedMagics.RookShifts[i] :
                 (ulong)blocker * PrecomputedMagics.BishopMagics[i] >> PrecomputedMagics.BishopShifts[i];
                 BitBoard legalMoves = generateLegalMoves(i, blocker, isRook);
-                returno[i,key] = blocker;
+                returno[i,key] = legalMoves;
             }
         }
         return returno;
@@ -201,7 +212,7 @@ public class Position
             for (int i = 0; i < 4; i++)
             {
                 BitBoard piece = (BitBoard)index;
-                while(((piece & blocker) == 0)&&(piece > 0) && ((piece & endPos[index]) == 0)){
+                while(((piece & blocker) == 0)&&(piece > 0)&&((piece & endPos[index]) == 0) && !(((BitBoard)index & H) > 0 && (directions[i] ==  -1 || directions[i] ==  -9 ||directions[i] ==  7))&& !(((BitBoard)index & H2) > 0 && (directions[i] ==  1 || directions[i] ==  -7 || directions[i] ==  9))){
                     piece <<= directions[i];
                     returno |= piece;
                 }

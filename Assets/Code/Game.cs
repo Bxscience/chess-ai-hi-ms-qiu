@@ -46,7 +46,7 @@ public class Game : MonoBehaviour
         initalizeGame(startFEN);
         BitBoard[] white = new BitBoard[6];
         BitBoard[] black = new BitBoard[6];
-        for (int j = 0; j < 63; j++)
+        for (int j = 0; j < 64; j++)
         {
             if (board[j] != 0)
             {
@@ -83,17 +83,23 @@ public class Game : MonoBehaviour
         {
             if (Physics.Raycast(ray, out RaycastHit hit2, 10000, 1 << 6))
             {
-                isMakingMove = false;
+                bool isLegal = false;
                 int selectedTileIndex = (int)(selectedTile.transform.position.x + selectedTile.transform.position.z * 8);
                 int toTileIndex = (int)(hit2.transform.position.x + hit2.transform.position.z * 8);
-                Debug.Log(toTileIndex);
+                foreach(Move move in moves){
+                    isLegal = move.TargetSquare == toTileIndex? true:isLegal;
+                }
+                if(isLegal){
+                isMakingMove = false;
                 Move currentMove = new Move(selectedTileIndex, toTileIndex, board[selectedTileIndex], null);
-                selectedTile.GetComponent<Renderer>().material.color = lastTileColor;
                 updateBoardWithMove(currentMove);
+                gameState.updateBoardWithMove(currentMove);
+                selectedTile.GetComponent<Renderer>().material.color = lastTileColor;
                 gameState.state.Push(new PositionState(currentMove, CastlingFlags.Both, CastlingFlags.Both, sideToMove ^ 24, 0, 1, 0, null, null));
                 foreach (Move move in moves)
                 {
                     tiles[move.TargetSquare].GetComponent<Renderer>().material.color = (move.TargetSquare % 8 + move.TargetSquare/8) % 2== 0 ? Color.white: Color.black;
+                }
                 }
             }
         }
@@ -119,7 +125,7 @@ public class Game : MonoBehaviour
             for (int j = 0; j < 8; j++)
             {
                 int index = i * 8 + j;
-                tiles[index] = Instantiate(tile, new Vector3(i, 0, j), Quaternion.identity);
+                tiles[index] = Instantiate(tile, new Vector3(j, 0, i), Quaternion.identity);
                 Renderer mat = tiles[index].GetComponent<Renderer>();
                 mat.material.color = (i + j) % 2 == 0 ? Color.white : Color.black;
                 if ((board[index] & 7) != 0)
@@ -128,7 +134,6 @@ public class Game : MonoBehaviour
                     gameObjectBoard[index].transform.localScale = Vector3.one;
                     if (board[index] >> 3 == 1) gameObjectBoard[index].GetComponent<Renderer>().material.color = Color.white;
                     else { gameObjectBoard[index].GetComponent<Renderer>().material.color = Color.black; gameObjectBoard[index].transform.rotation = Quaternion.Euler(0, 180, 0); }
-                    ;
                 }
             }
         }
