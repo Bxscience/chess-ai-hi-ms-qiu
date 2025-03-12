@@ -8,11 +8,41 @@ public class MoveGenerator
 {
     private BitBoard[,] rookLookup;
     private BitBoard[,] bishopLookup;
+    private BitBoard[] knightLookup;
+    private BitBoard rank2 = (BitBoard)(ulong)0xff00;
+    private BitBoard rank7 = (BitBoard)0xff000000000000;
     public void initializeLookup(){
         rookLookup = Position.generateLookupTable(true);
         bishopLookup = Position.generateLookupTable(false);
+        knightLookup = new BitBoard[64];
+        for (int i = 0; i <64; i++)
+        {
+            knightLookup[i] = PiecePositions.knightAttack(i);
+        }
     }
-    public List<Move> createMovesAtSquare(Position board, int square){
+    public List<Move> createJumpingMove(Position board, int square){
+        int piece = board.PieceAt(square);
+        BitBoard attack = new();
+        if((piece & 7)== 3){
+            attack = knightLookup[square];
+        }
+        else{attack = (board.state.Peek().NextToMove == 8 ? board.whitePositions.allPositions:board.blackPositions.allPositions) & PiecePositions.pawnAttack(square, board.state.Peek().NextToMove == 8);
+        bool isWhite = board.state.Peek().NextToMove == 8;
+        if((rank2 & (BitBoard)square) > 0 && isWhite)
+            attack |= (BitBoard)square << 16;
+        else if((rank7 & (BitBoard)square) > 0 && !isWhite)
+            attack |= (BitBoard)square >> 16;
+        attack |= isWhite? (BitBoard)square << 8: (BitBoard)square >> 8;
+        }
+        attack &= board.state.Peek().NextToMove == 8? ~board.whitePositions.allPositions: ~board.blackPositions.allPositions;
+        return createMoves(attack, square);
+    }
+    public List<Move> createKingMove(Position board, int square){
+        BitBoard attack = PiecePositions.kingAttack(square);
+        
+        return createMoves(attack, square);
+    }
+    public List<Move> createSlidingMove(Position board, int square){
         BitBoard D = (BitBoard)0xff818181818181ff;
         BitBoard N = (BitBoard)0x81818181818181ff;
         BitBoard E = (BitBoard)0xff010101010101ff;
@@ -32,24 +62,16 @@ public class MoveGenerator
          W,D,D,D,D,D,D,E,
         NW,N,N,N,N,N,N,NE
         };
-        List<Move> moves = new List<Move>();
         BitBoard allPieces = board.whitePositions.allPositions | board.blackPositions.allPositions;
         int piece = board.PieceAt(square);
         int playerToMove =board.state.Peek().NextToMove;
-        BitBoard attack = PiecePositions.pieceAttack(square, piece & 7, playerToMove == 8);
-        attack &= ~endPos[square];
-        attack &= allPieces;
-        attack = (piece & 7) == 2? bishopLookup[square,((ulong)attack * PrecomputedMagics.BishopMagics[square]) >> PrecomputedMagics.BishopShifts[square]]: attack;
-        attack = (piece & 7) == 4? rookLookup[square, ((ulong)attack * PrecomputedMagics.RookMagics[square]) >> PrecomputedMagics.RookShifts[square]]: attack;
-        attack = (piece & 7) == 5? bishopLookup[square,((ulong)attack * PrecomputedMagics.BishopMagics[square]) >> PrecomputedMagics.BishopShifts[square]]|rookLookup[square, ((ulong)attack * PrecomputedMagics.RookMagics[square]) >> PrecomputedMagics.RookShifts[square]] : attack;
+        BitBoard attack =  (piece & 7) == 5 ?
+        bishopLookup[square,((ulong)(PiecePositions.bishopAttack(square) & ~endPos[square] & allPieces) * PrecomputedMagics.BishopMagics[square]) >> PrecomputedMagics.BishopShifts[square]]|rookLookup[square, ((ulong)(PiecePositions.rookAttack(square)& ~endPos[square] & allPieces) * PrecomputedMagics.RookMagics[square]) >> PrecomputedMagics.RookShifts[square]]:
+        PiecePositions.pieceAttack(square, piece & 7, playerToMove == 8);
+        attack = (piece & 7) == 2? bishopLookup[square,((ulong)(attack & allPieces & ~endPos[square]) * PrecomputedMagics.BishopMagics[square]) >> PrecomputedMagics.BishopShifts[square]]: attack;
+        attack = (piece & 7) == 4? rookLookup[square,((ulong)(attack& allPieces& ~endPos[square] ) * PrecomputedMagics.RookMagics[square]) >> PrecomputedMagics.RookShifts[square]]: attack;
         attack &= ~(playerToMove == 8? board.whitePositions.allPositions: board.blackPositions.allPositions);
-        for(int i = 0; i < 64; i++)
-        {
-            if((attack & (BitBoard)i) > 0){
-                moves.Add(new Move(square,i,piece,null));
-            }
-        }
-        return moves;
+        return createMoves(attack, square);
     }
     public static List<Move> generateMoves(Position board)
     {
@@ -103,6 +125,16 @@ public class MoveGenerator
             map[i] = (BitBoard)i;
         }
         return map;
+    }
+    private List<Move> createMoves(BitBoard attackMap, int startSquare){
+        List<Move> moves= new();
+        for(int i = 0; i < 64; i++)
+        {
+            if((attackMap & (BitBoard)i) > 0){
+                moves.Add(new Move(startSquare,i,startSquare,null));
+            }
+        }
+        return moves;
     }
 }
 public struct Move

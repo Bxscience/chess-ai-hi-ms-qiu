@@ -14,7 +14,7 @@ public class Game : MonoBehaviour
     public GameObject tile;
     public GameObject[] pieces;
     private Position gameState;
-    private const string startFEN = "rnbqkbnr/8/8/8/8/8/8/RNBQKBNR w KQkq - 0 1";
+    private const string startFEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPP/RNBQKBNR w KQkq - 0 1";
     private GameObject[] gameObjectBoard = new GameObject[64];
     private GameObject[] tiles = new GameObject[64];
     private int[] board = new int[64];
@@ -22,9 +22,9 @@ public class Game : MonoBehaviour
     private bool isMakingMove = false;
     private Color lastTileColor;
     private PlayerInput mouseInputAction;
-    private MoveGenerator moveGenerator = new MoveGenerator();
+    private MoveGenerator moveGenerator = new();
     private List<Move> moves;
-    Dictionary<char, byte> pieceLookup = new Dictionary<char, byte>() { { 'p', 1 }, { 'b', 2 }, { 'n', 3 }, { 'r', 4 }, { 'q', 5 }, { 'k', 6 } };
+    private readonly Dictionary<string, short> posLookup = new Dictionary<string, short> { { "A", 1 }, { "B", 2 }, { "C", 3 }, { "D", 4 }, { "E", 5 }, { "F", 6 }, { "G", 7 }, { "H", 8 } };
     void Awake()
     {
         mouseInputAction = new PlayerInput();
@@ -105,12 +105,32 @@ public class Game : MonoBehaviour
         }
         else if (Physics.Raycast(ray, out RaycastHit hit, 10000, 1 << 6) && gameObjectBoard[(int)(hit.transform.position.x + hit.transform.position.z * 8)] != null && board[(int)(hit.transform.position.x + hit.transform.position.z * 8)] >> 3 << 3 == (int)sideToMove)
         {
+            int pos = (int)(hit.transform.position.x + hit.transform.position.z * 8);
             selectedTile = hit.transform;
             Renderer renderer = selectedTile.GetComponent<Renderer>();
             lastTileColor = renderer.material.color;
             renderer.material.color = Color.yellow;
             isMakingMove = true;
-            moves = moveGenerator.createMovesAtSquare(gameState, (int)(hit.transform.position.x + hit.transform.position.z * 8));
+            switch(board[pos] & 7){
+                case 1:
+                moves = moveGenerator.createJumpingMove(gameState, pos);
+                break;
+                case 2:
+                moves = moveGenerator.createSlidingMove(gameState, pos);
+                break;
+                case 3:
+                moves = moveGenerator.createJumpingMove(gameState, pos);
+                break;
+                case 4:
+                moves = moveGenerator.createSlidingMove(gameState, pos);
+                break;
+                case 5:
+                moves = moveGenerator.createSlidingMove(gameState, pos);
+                break;
+                case 6:
+                moves = moveGenerator.createKingMove(gameState, pos);
+                break;
+            }
             foreach (Move move in moves)
             {
                 tiles[move.TargetSquare].GetComponent<Renderer>().material.color = Color.yellow;
@@ -149,7 +169,6 @@ public class Game : MonoBehaviour
         gameObjectBoard[move.SourceSquare] = null;
     }
     //FEN parse
-    private readonly Dictionary<string, short> posLookup = new Dictionary<string, short> { { "A", 1 }, { "B", 2 }, { "C", 3 }, { "D", 4 }, { "E", 5 }, { "F", 6 }, { "G", 7 }, { "H", 8 } };
     private string[] splitFEN(string FENPosition)
     {
         try
@@ -171,6 +190,7 @@ public class Game : MonoBehaviour
     }
     private void placementParse(string FENPosition)
     {
+        Dictionary<char, int> pieceLookup = new Dictionary<char, int>() { { 'p', 1 }, { 'b', 2 }, { 'n', 3 }, { 'r', 4 }, { 'q', 5 }, { 'k', 6 } };
         int rank = 7;
         int file = 0;
         foreach (char character in FENPosition)

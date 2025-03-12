@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Runtime.InteropServices.WindowsRuntime;
 using System.Security.Cryptography.X509Certificates;
 using TMPro;
 using Unity.VisualScripting;
@@ -35,21 +36,22 @@ public struct BitBoard
     => a._squares > b;
     public static bool operator <=(BitBoard a, ulong b)
     => a._squares <= b;
-    public static bool operator >= (BitBoard a, ulong b)    
+    public static bool operator >=(BitBoard a, ulong b)    
     => a._squares >= b;
+    public static BitBoard operator -(BitBoard a)
+    => ~(a-(BitBoard)1ul);
+    public static BitBoard operator ~(BitBoard a)
+    => new BitBoard(~a._squares);
     public static BitBoard operator -(BitBoard a, BitBoard b)
     => new BitBoard(a._squares - b._squares);
     public static BitBoard operator +(BitBoard a, BitBoard b)
     => new BitBoard(a._squares + b._squares);
     public static BitBoard operator *(BitBoard a, BitBoard b)
     => new BitBoard(a._squares * b._squares);
-    public static BitBoard operator ~(BitBoard a)
-    => new BitBoard(~a._squares);
     public static explicit operator BitBoard(ulong a) 
     => new BitBoard(a);
      public static explicit operator BitBoard(int a){
         if(a > 63){
-            Debug.Log("not in range");
             throw new IndexOutOfRangeException();
         }
         ulong returno = 1ul<<(a);
@@ -59,7 +61,7 @@ public struct BitBoard
     => a._squares;
     public override string ToString()
     {
-        return _squares.ToString();//Convert.ToString((long)_squares, 2);
+        return Convert.ToString((long)_squares, 2);
     }
     static readonly private ulong deBruijn = 0x03f79d71b4cb0a89L;
     static readonly private int[] magicTable = {
@@ -74,7 +76,7 @@ public struct BitBoard
     };
 
     static public int bitscan(BitBoard b) {
-       int idx = (int)(((ulong)b * deBruijn) >> 58);
+       int idx = (int)(((ulong)(b & -b) * deBruijn) >> 58);
        return magicTable[idx];
     }
     
