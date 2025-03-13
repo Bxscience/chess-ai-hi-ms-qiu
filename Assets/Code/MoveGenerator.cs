@@ -32,7 +32,7 @@ public class MoveGenerator
         }
         else
         {
-            attack = (board.state.Peek().NextToMove == 8 ? board.blackPositions.allPositions : board.whitePositions.allPositions) & PiecePositions.pawnAttack(square, board.state.Peek().NextToMove == 8);
+            attack = (board.state.Peek().NextToMove == 8 ? board.blackPositions.allPositions : board.whitePositions.allPositions) & PiecePositions.pawnAttack(square, board.state.Peek().NextToMove);
             bool isWhite = board.state.Peek().NextToMove == 8;
             attack |= isWhite ? (BitBoard)square << 8 & ~(board.whitePositions.allPositions | board.blackPositions.allPositions) : (BitBoard)square >> 8 & ~(board.whitePositions.allPositions | board.blackPositions.allPositions);
             if ((rank2 & (BitBoard)square) > 0 && isWhite && attack > 0)
@@ -73,7 +73,7 @@ public class MoveGenerator
         BitBoard allPieces = board.whitePositions.allPositions | board.blackPositions.allPositions;
         int piece = board.PieceAt(square);
         int playerToMove = board.state.Peek().NextToMove;
-        BitBoard attack = (piece & 7) == 5 ? bishopLookup[square, ((ulong)(PiecePositions.bishopAttack(square) & ~endPos[square] & allPieces) * PrecomputedMagics.BishopMagics[square]) >> PrecomputedMagics.BishopShifts[square]] | rookLookup[square, ((ulong)(PiecePositions.rookAttack(square) & ~endPos[square] & allPieces) * PrecomputedMagics.RookMagics[square]) >> PrecomputedMagics.RookShifts[square]] : PiecePositions.pieceAttack(square, piece & 7, playerToMove == 8);
+        BitBoard attack = (piece & 7) == 5 ? bishopLookup[square, ((ulong)(PiecePositions.bishopAttack(square) & ~endPos[square] & allPieces) * PrecomputedMagics.BishopMagics[square]) >> PrecomputedMagics.BishopShifts[square]] | rookLookup[square, ((ulong)(PiecePositions.rookAttack(square) & ~endPos[square] & allPieces) * PrecomputedMagics.RookMagics[square]) >> PrecomputedMagics.RookShifts[square]] : PiecePositions.pieceAttack(square, piece & 7, playerToMove);
         attack = (piece & 7) == 2 ? bishopLookup[square, ((ulong)(attack & allPieces & ~endPos[square]) * PrecomputedMagics.BishopMagics[square]) >> PrecomputedMagics.BishopShifts[square]] : attack;
         attack = (piece & 7) == 4 ? rookLookup[square, ((ulong)(attack & allPieces & ~endPos[square]) * PrecomputedMagics.RookMagics[square]) >> PrecomputedMagics.RookShifts[square]] : attack;
         attack &= ~(playerToMove == 8 ? board.whitePositions.allPositions : board.blackPositions.allPositions);

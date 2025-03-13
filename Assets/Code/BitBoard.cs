@@ -11,8 +11,9 @@ using UnityEngine;
 public struct BitBoard 
 {
     private readonly ulong _squares;
-    public static BitBoard zero = new BitBoard(0);
-    public static BitBoard one = new BitBoard(1);
+    public static BitBoard zero = new(0);
+    public static BitBoard one = new(1);
+    public static BitBoard huge = new(ulong.MaxValue);
     public BitBoard(ulong bitboard){
         _squares = bitboard;
     }
@@ -28,8 +29,12 @@ public struct BitBoard
     => new BitBoard(b > 0 ? a._squares << b : a._squares >> -b);
     public static bool operator ==(BitBoard a, ulong b)
     => a._squares == b;
+    public static bool operator ==(BitBoard a, BitBoard b)
+    => a._squares == b._squares;
     public static bool operator !=(BitBoard a, ulong b)
     => a._squares != b;
+    public static bool operator !=(BitBoard a, BitBoard b)
+    => a._squares != b._squares;
     public static bool operator <(BitBoard a, ulong b)
     => a._squares < b;
     public static bool operator >(BitBoard a, ulong b)
@@ -63,7 +68,7 @@ public struct BitBoard
     {
         return Convert.ToString((long)_squares, 2);
     }
-    static readonly private ulong deBruijn = 0x03f79d71b4cb0a89L;
+    static readonly private ulong deBruijn = 0x03f79d71b4cb0a89;
     static readonly private int[] magicTable = {
       0, 1,48, 2,57,49,28, 3,
      61,58,50,42,38,29,17, 4,
