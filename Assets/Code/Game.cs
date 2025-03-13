@@ -14,7 +14,7 @@ public class Game : MonoBehaviour
     public GameObject tile;
     public GameObject[] pieces;
     private Position gameState;
-    private const string startFEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPP/RNBQKBNR w KQkq - 0 1";
+    private const string startFEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
     private GameObject[] gameObjectBoard = new GameObject[64];
     private GameObject[] tiles = new GameObject[64];
     private int[] board = new int[64];
@@ -43,9 +43,9 @@ public class Game : MonoBehaviour
 
     void Start()
     {
-        initalizeGame(startFEN);
         BitBoard[] white = new BitBoard[6];
         BitBoard[] black = new BitBoard[6];
+        PositionState startState = initalizeGame(startFEN);
         for (int j = 0; j < 64; j++)
         {
             if (board[j] != 0)
@@ -55,87 +55,27 @@ public class Game : MonoBehaviour
             }
         }
         gameState = new Position(white, black);
+        gameState.state.Push(startState);
         moveGenerator.initializeLookup();
         initalizeBoard();
+        
+        
     }
     void Update()
     {
 
     }
     //For initalizing the internal movement and bitboards
-    void initalizeGame(string FENString)
+    PositionState initalizeGame(string FENString)
     {
         string[] FEN = splitFEN(FENString);
         placementParse(FEN[0]);
-        /*sideParse(FEN[1]);
-        castlingRightsParse(FEN[2]);
-        enPassantTargetParse(FEN[3]);
-        halfMoveClockParse(FEN[4]);
-        fullMoveCountParse(FEN[5]);
-        gameState = new Position();*/
-    }
-    //Player input
-    public void onClick(InputAction.CallbackContext context)
-    {
-        int sideToMove = gameState.state.Peek().NextToMove;
-        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-        if (isMakingMove & selectedTile != null)
-        {
-            if (Physics.Raycast(ray, out RaycastHit hit2, 10000, 1 << 6))
-            {
-                bool isLegal = false;
-                int selectedTileIndex = (int)(selectedTile.transform.position.x + selectedTile.transform.position.z * 8);
-                int toTileIndex = (int)(hit2.transform.position.x + hit2.transform.position.z * 8);
-                foreach(Move move in moves){
-                    isLegal = move.TargetSquare == toTileIndex? true:isLegal;
-                }
-                if(isLegal){
-                isMakingMove = false;
-                Move currentMove = new Move(selectedTileIndex, toTileIndex, board[selectedTileIndex], null);
-                updateBoardWithMove(currentMove);
-                gameState.updateBoardWithMove(currentMove);
-                selectedTile.GetComponent<Renderer>().material.color = lastTileColor;
-                gameState.state.Push(new PositionState(currentMove, CastlingFlags.Both, CastlingFlags.Both, sideToMove ^ 24, 0, 1, 0, null, null));
-                foreach (Move move in moves)
-                {
-                    tiles[move.TargetSquare].GetComponent<Renderer>().material.color = (move.TargetSquare % 8 + move.TargetSquare/8) % 2== 0 ? Color.white: Color.black;
-                }
-                }
-            }
-        }
-        else if (Physics.Raycast(ray, out RaycastHit hit, 10000, 1 << 6) && gameObjectBoard[(int)(hit.transform.position.x + hit.transform.position.z * 8)] != null && board[(int)(hit.transform.position.x + hit.transform.position.z * 8)] >> 3 << 3 == (int)sideToMove)
-        {
-            int pos = (int)(hit.transform.position.x + hit.transform.position.z * 8);
-            selectedTile = hit.transform;
-            Renderer renderer = selectedTile.GetComponent<Renderer>();
-            lastTileColor = renderer.material.color;
-            renderer.material.color = Color.yellow;
-            isMakingMove = true;
-            switch(board[pos] & 7){
-                case 1:
-                moves = moveGenerator.createJumpingMove(gameState, pos);
-                break;
-                case 2:
-                moves = moveGenerator.createSlidingMove(gameState, pos);
-                break;
-                case 3:
-                moves = moveGenerator.createJumpingMove(gameState, pos);
-                break;
-                case 4:
-                moves = moveGenerator.createSlidingMove(gameState, pos);
-                break;
-                case 5:
-                moves = moveGenerator.createSlidingMove(gameState, pos);
-                break;
-                case 6:
-                moves = moveGenerator.createKingMove(gameState, pos);
-                break;
-            }
-            foreach (Move move in moves)
-            {
-                tiles[move.TargetSquare].GetComponent<Renderer>().material.color = Color.yellow;
-            }
-        }
+        int side = sideParse(FEN[1]);
+        CastlingFlags[] castlings = castlingRightsParse(FEN[2]);
+        int enPassantTarget = enPassantTargetParse(FEN[3]);
+        int halfMoveClock = halfMoveClockParse(FEN[4]);
+        int fullMoveCount = fullMoveCountParse(FEN[5]);
+        return new(new Move(), castlings[0], castlings[1], side, enPassantTarget, halfMoveClock, fullMoveCount, null, null);
     }
     //For initalizing game objects
     void initalizeBoard()
@@ -152,12 +92,90 @@ public class Game : MonoBehaviour
                 {
                     gameObjectBoard[index] = Instantiate(pieces[board[index] & 7], new Vector3(j, 0, i), Quaternion.identity);
                     gameObjectBoard[index].transform.localScale = Vector3.one;
-                    if (board[index] >> 3 == 1) gameObjectBoard[index].GetComponent<Renderer>().material.color = Color.white;
-                    else { gameObjectBoard[index].GetComponent<Renderer>().material.color = Color.black; gameObjectBoard[index].transform.rotation = Quaternion.Euler(0, 180, 0); }
+                    if(board[index] >> 3 == 1) 
+                        gameObjectBoard[index].GetComponent<Renderer>().material.color = Color.white;
+                    else
+                        gameObjectBoard[index].GetComponent<Renderer>().material.color = Color.black; gameObjectBoard[index].transform.rotation = Quaternion.Euler(0, 180, 0);
                 }
             }
         }
     }
+    //Player input
+    public void onClick(InputAction.CallbackContext context)
+    {
+        int sideToMove = gameState.state.Peek().NextToMove;
+        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+        if (isMakingMove & selectedTile != null)
+        {
+            if (Physics.Raycast(ray, out RaycastHit hit2, 10000, 1 << 6))
+            {
+                bool isLegal = false;
+                int selectedTileIndex = (int)(selectedTile.transform.position.x + selectedTile.transform.position.z * 8);
+                int toTileIndex = (int)(hit2.transform.position.x + hit2.transform.position.z * 8);
+                foreach (Move move in moves)
+                {
+                    isLegal = move.TargetSquare == toTileIndex ? true : isLegal;
+                }
+                if (isLegal)
+                {
+                    isMakingMove = false;
+                    Move currentMove = new Move(selectedTileIndex, toTileIndex, board[selectedTileIndex], null);
+                    updateBoardWithMove(currentMove);
+                    gameState.updateBoardWithMove(currentMove);
+                    selectedTile.GetComponent<Renderer>().material.color = lastTileColor;
+                    gameState.state.Push(new PositionState(currentMove, CastlingFlags.Both, CastlingFlags.Both, sideToMove ^ 24, 0, 1, 0, null, null));
+                    foreach (Move move in moves)
+                    {
+                        tiles[move.TargetSquare].GetComponent<Renderer>().material.color = (move.TargetSquare % 8 + move.TargetSquare / 8) % 2 == 0 ? Color.white : Color.black;
+                    }
+                }
+                else
+                {
+                    isMakingMove = false;
+                    selectedTile.GetComponent<Renderer>().material.color = lastTileColor;
+                    foreach (Move move in moves)
+                    {
+                        tiles[move.TargetSquare].GetComponent<Renderer>().material.color = (move.TargetSquare % 8 + move.TargetSquare / 8) % 2 == 0 ? Color.white : Color.black;
+                    }
+                }
+            }
+        }
+        else if (Physics.Raycast(ray, out RaycastHit hit, 10000, 1 << 6) && gameObjectBoard[(int)(hit.transform.position.x + hit.transform.position.z * 8)] != null && board[(int)(hit.transform.position.x + hit.transform.position.z * 8)] >> 3 << 3 == (int)sideToMove)
+        {
+            int pos = (int)(hit.transform.position.x + hit.transform.position.z * 8);
+            selectedTile = hit.transform;
+            Renderer renderer = selectedTile.GetComponent<Renderer>();
+            lastTileColor = renderer.material.color;
+            renderer.material.color = Color.yellow;
+            isMakingMove = true;
+            switch (board[pos] & 7)
+            {
+                case 1:
+                    moves = moveGenerator.createJumpingMove(gameState, pos);
+                    break;
+                case 2:
+                    moves = moveGenerator.createSlidingMove(gameState, pos);
+                    break;
+                case 3:
+                    moves = moveGenerator.createJumpingMove(gameState, pos);
+                    break;
+                case 4:
+                    moves = moveGenerator.createSlidingMove(gameState, pos);
+                    break;
+                case 5:
+                    moves = moveGenerator.createSlidingMove(gameState, pos);
+                    break;
+                case 6:
+                    moves = moveGenerator.createKingMove(gameState, pos);
+                    break;
+            }
+            foreach (Move move in moves)
+            {
+                tiles[move.TargetSquare].GetComponent<Renderer>().material.color = Color.yellow;
+            }
+        }
+    }
+    
     //Helper functions
     void updateBoardWithMove(Move move)
     {
@@ -231,20 +249,20 @@ public class Game : MonoBehaviour
         flags[1] = CastlingFlags.None;
         for (int i = 0; i < FENPosition.Length; i++)
         {
-            string right = FENPosition.Substring(i, i + 1);
-            switch (right)
+            char[] right = FENPosition.ToCharArray();
+            switch (right[i])
             {
-                case "K":
+                case 'K':
                     flags[1] = CastlingFlags.KingSide;
                     break;
-                case "Q":
+                case 'Q':
                     if (flags[1] == CastlingFlags.KingSide) flags[1] = CastlingFlags.Both;
                     else flags[1] = CastlingFlags.QueenSide;
                     break;
-                case "k":
+                case 'k':
                     flags[0] = CastlingFlags.KingSide;
                     break;
-                case "q":
+                case 'q':
                     if (flags[0] == CastlingFlags.KingSide) flags[0] = CastlingFlags.Both;
                     else flags[0] = CastlingFlags.QueenSide;
                     break;

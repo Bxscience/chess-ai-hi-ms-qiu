@@ -52,8 +52,6 @@ public class PiecePositions
                 return knightAttack(position);
             case 4:
                 return rookAttack(position);
-            case 5:
-                return rookAttack(position) | bishopAttack(position);
             case 6:
                 return kingAttack(position);
         }
@@ -116,20 +114,33 @@ public class Position
     }
     public void updateBoardWithMove(Move move)
     {
-        if (state.Peek().NextToMove == 8){
+        PositionState lastState = state.Peek();
+        int capturedPiece = 0;
+        if (lastState.NextToMove == 8){
             whitePositions.positions[(move.MovedPiece & 7)-1] ^= (BitBoard)move.TargetSquare | (BitBoard)move.SourceSquare;
-            for (int i = 0; i < blackPositions.positions.Length; i++)
-            {
+            for (int i = 0; i < blackPositions.positions.Length; i++){
                 blackPositions.positions[i] &= ~(BitBoard)move.TargetSquare;
+                capturedPiece = (blackPositions.positions[i] & ~(BitBoard)move.TargetSquare)> 0 ? (i+1)|16:capturedPiece;
             }
             }
         else{
             blackPositions.positions[(move.MovedPiece & 7)-1] ^= (BitBoard)move.TargetSquare | (BitBoard)move.SourceSquare;
-            for (int i = 0; i < whitePositions.positions.Length; i++)
-            {
+            for (int i = 0; i < whitePositions.positions.Length; i++){
                 whitePositions.positions[i] &= ~(BitBoard)move.TargetSquare;
+                capturedPiece = (whitePositions.positions[i] & ~(BitBoard)move.TargetSquare)> 0 ? (i+1)|8:capturedPiece;
             }
             }
+        PositionState newState = new(move,
+        lastState.WhiteCastlingRights, 
+        lastState.BlackCastlingRights, 
+        lastState.NextToMove == 8 ? 16:8,
+        -1,
+        lastState.HalfMoveClock + 1,
+        lastState.FullMoveCount + 1,
+        capturedPiece,
+        move.TargetSquare
+        );
+        state.Push(newState);
     }
 
     public int PieceAt(int square)
@@ -235,9 +246,9 @@ public class PositionState
     public CastlingFlags WhiteCastlingRights { get; }
     public CastlingFlags BlackCastlingRights { get; }
     public int NextToMove { get; }
-    public short EnPassantTarget { get; }
-    public ushort HalfMoveClock { get; }
-    public ushort FullMoveCount { get; }
+    public int EnPassantTarget { get; }
+    public int HalfMoveClock { get; }
+    public int FullMoveCount { get; }
     public int? CapturedPieceType { get; }
     public int? CaptureSquare { get; }
     public PositionState()
@@ -250,7 +261,7 @@ public class PositionState
         HalfMoveClock = 1;
         FullMoveCount = 0;
     }
-    public PositionState(Move move, CastlingFlags whiteflag, CastlingFlags blackflag, int nextToMove, short enPassantTarget, ushort halfMoveClock, ushort fullMoveCount, int? capturedPiece, int? captureSquare)
+    public PositionState(Move move, CastlingFlags whiteflag, CastlingFlags blackflag, int nextToMove, int enPassantTarget, int halfMoveClock, int fullMoveCount, int? capturedPiece, int? captureSquare)
     {
         AppliedMove = move;
         WhiteCastlingRights = whiteflag;
