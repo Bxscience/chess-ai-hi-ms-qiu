@@ -19,42 +19,61 @@ public struct BitBoard
     }
     public static BitBoard operator &(BitBoard a, BitBoard b) 
     => new BitBoard(a._squares & b._squares);
+
     public static BitBoard operator |(BitBoard a, BitBoard b)
     => new BitBoard(a._squares | b._squares);
+
     public static BitBoard operator ^(BitBoard a, BitBoard b) 
     => new BitBoard(a._squares ^ b._squares);
+    
     public static BitBoard operator >>(BitBoard a, int b) 
     => new BitBoard(b > 0 ? a._squares >> b : a._squares << -b);
+    
     public static BitBoard operator <<(BitBoard a, int b) 
     => new BitBoard(b > 0 ? a._squares << b : a._squares >> -b);
+    
     public static bool operator ==(BitBoard a, ulong b)
     => a._squares == b;
+    
     public static bool operator ==(BitBoard a, BitBoard b)
     => a._squares == b._squares;
+    
     public static bool operator !=(BitBoard a, ulong b)
     => a._squares != b;
+    
     public static bool operator !=(BitBoard a, BitBoard b)
     => a._squares != b._squares;
+    
     public static bool operator <(BitBoard a, ulong b)
     => a._squares < b;
+    
     public static bool operator >(BitBoard a, ulong b)
     => a._squares > b;
+    
     public static bool operator <=(BitBoard a, ulong b)
     => a._squares <= b;
+    
     public static bool operator >=(BitBoard a, ulong b)    
     => a._squares >= b;
+    
     public static BitBoard operator -(BitBoard a)
     => ~(a-(BitBoard)1ul);
+    
     public static BitBoard operator ~(BitBoard a)
     => new BitBoard(~a._squares);
+    
     public static BitBoard operator -(BitBoard a, BitBoard b)
     => new BitBoard(a._squares - b._squares);
+    
     public static BitBoard operator +(BitBoard a, BitBoard b)
     => new BitBoard(a._squares + b._squares);
+    
     public static BitBoard operator *(BitBoard a, BitBoard b)
     => new BitBoard(a._squares * b._squares);
+    
     public static explicit operator BitBoard(ulong a) 
     => new BitBoard(a);
+    
      public static explicit operator BitBoard(int a){
         if(a > 63){
             throw new IndexOutOfRangeException();
@@ -62,8 +81,10 @@ public struct BitBoard
         ulong returno = 1ul<<(a);
         return new BitBoard(returno);
     }
+    
     public static explicit operator ulong(BitBoard a)
     => a._squares;
+    
     public override string ToString()
     {
         return Convert.ToString((long)_squares, 2);

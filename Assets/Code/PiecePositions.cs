@@ -15,7 +15,7 @@ public class PiecePositions
     public BitBoard[] positions;
     static readonly ulong[] bishopTable = { 0x8040201008040200, 0x80402010080500, 0x804020110a00, 0x8041221400, 0x182442800, 0x10204885000, 0x102040810a000, 0x102040810204000, 0x4020100804020002, 0x8040201008050005, 0x804020110a000a, 0x804122140014, 0x18244280028, 0x1020488500050, 0x102040810a000a0, 0x204081020400040, 0x2010080402000204, 0x4020100805000508, 0x804020110a000a11, 0x80412214001422, 0x1824428002844, 0x102048850005088, 0x2040810a000a010, 0x408102040004020, 0x1008040200020408, 0x2010080500050810, 0x4020110a000a1120, 0x8041221400142241, 0x182442800284482, 0x204885000508804, 0x40810a000a01008, 0x810204000402010, 0x804020002040810, 0x1008050005081020, 0x20110a000a112040, 0x4122140014224180, 0x8244280028448201, 0x488500050880402, 0x810a000a0100804, 0x1020400040201008, 0x402000204081020, 0x805000508102040, 0x110a000a11204080, 0x2214001422418000, 0x4428002844820100, 0x8850005088040201, 0x10a000a010080402, 0x2040004020100804, 0x200020408102040, 0x500050810204080, 0xa000a1120408000, 0x1400142241800000, 0x2800284482010000, 0x5000508804020100, 0xa000a01008040201, 0x4000402010080402, 0x2040810204080, 0x5081020408000, 0xa112040800000, 0x14224180000000, 0x28448201000000, 0x50880402010000, 0xa0100804020100, 0x40201008040201 };
     static readonly ulong[] rookTable = { 0x1010101010101fe, 0x2020202020202fd, 0x4040404040404fb, 0x8080808080808f7, 0x10101010101010ef, 0x20202020202020df, 0x40404040404040bf, 0x808080808080807f, 0x10101010101fe01, 0x20202020202fd02, 0x40404040404fb04, 0x80808080808f708, 0x101010101010ef10, 0x202020202020df20, 0x404040404040bf40, 0x8080808080807f80, 0x101010101fe0101, 0x202020202fd0202, 0x404040404fb0404, 0x808080808f70808, 0x1010101010ef1010, 0x2020202020df2020, 0x4040404040bf4040, 0x80808080807f8080, 0x1010101fe010101, 0x2020202fd020202, 0x4040404fb040404, 0x8080808f7080808, 0x10101010ef101010, 0x20202020df202020, 0x40404040bf404040, 0x808080807f808080, 0x10101fe01010101, 0x20202fd02020202, 0x40404fb04040404, 0x80808f708080808, 0x101010ef10101010, 0x202020df20202020, 0x404040bf40404040, 0x8080807f80808080, 0x101fe0101010101, 0x202fd0202020202, 0x404fb0404040404, 0x808f70808080808, 0x1010ef1010101010, 0x2020df2020202020, 0x4040bf4040404040, 0x80807f8080808080, 0x1fe010101010101, 0x2fd020202020202, 0x4fb040404040404, 0x8f7080808080808, 0x10ef101010101010, 0x20df202020202020, 0x40bf404040404040, 0x807f808080808080, 0xfe01010101010101, 0xfd02020202020202, 0xfb04040404040404, 0xf708080808080808, 0xef10101010101010, 0xdf20202020202020, 0xbf40404040404040, 0x7f80808080808080 };
-    public static readonly BitBoard[] fileTable = {(BitBoard)0x101010101010101,(BitBoard)0x202020202020202,(BitBoard)0x404040404040404,(BitBoard)0x808080808080808,(BitBoard)0x1010101010101010,(BitBoard)0x2020202020202020,(BitBoard)0x4040404040404040,(BitBoard)0x8080808080808080};
+    public static readonly BitBoard[] fileTable = { (BitBoard)0x101010101010101, (BitBoard)0x202020202020202, (BitBoard)0x404040404040404, (BitBoard)0x808080808080808, (BitBoard)0x1010101010101010, (BitBoard)0x2020202020202020, (BitBoard)0x4040404040404040, (BitBoard)0x8080808080808080 };
     public PiecePositions(
     BitBoard pawns,
     BitBoard bishops,
@@ -68,16 +68,20 @@ public class PiecePositions
     }
     public static BitBoard knightAttack(int piece)
     {
+
         BitBoard bitboardPiece = (BitBoard)piece;
         BitBoard returno = new BitBoard();
         BitBoard north = bitboardPiece.Nshift().Nshift();
         BitBoard south = bitboardPiece.Sshift().Sshift();
-        BitBoard east = (bitboardPiece & (fileTable[0] | fileTable[1]) )> 0? BitBoard.zero : bitboardPiece.Eshift().Eshift();
-        BitBoard west = (bitboardPiece & (fileTable[7] | fileTable[6]) )> 0? BitBoard.zero : bitboardPiece.Wshift().Wshift();
+        BitBoard east = (bitboardPiece & (fileTable[0] | fileTable[1])) > 0 ? BitBoard.zero : bitboardPiece.Eshift().Eshift();
+        BitBoard west = (bitboardPiece & (fileTable[7] | fileTable[6])) > 0 ? BitBoard.zero : bitboardPiece.Wshift().Wshift();
+
         returno |= east.Nshift() | east.Sshift() | west.Nshift() | west.Sshift();
-        returno |= (bitboardPiece & fileTable[0])> 0 ? BitBoard.zero:(north.Eshift() | south.Eshift());
-        returno |= (bitboardPiece & fileTable[7])> 0 ? BitBoard.zero:(north.Wshift() | south.Wshift());
+        returno |= (bitboardPiece & fileTable[0]) > 0 ? BitBoard.zero : (north.Eshift() | south.Eshift());
+        returno |= (bitboardPiece & fileTable[7]) > 0 ? BitBoard.zero : (north.Wshift() | south.Wshift());
+
         return returno;
+
     }
     public static BitBoard rookAttack(int piece)
     {
@@ -96,68 +100,126 @@ public class Position
     public Stack<PositionState> state;
     public PiecePositions whitePositions;
     public PiecePositions blackPositions;
+    private BitBoard blackPromote = new(0xff);
+    private BitBoard whitePromote = new(0xff00000000000000);
     //utility functions
     public Position(BitBoard[] white, BitBoard[] black)
     {
+
         state = new Stack<PositionState>();
         state.Push(new PositionState());
-        whitePositions = new PiecePositions(white[0],white[1],white[2],white[3],white[4],white[5]);
-        blackPositions = new PiecePositions(black[0],black[1],black[2],black[3],black[4],black[5]);
+        whitePositions = new PiecePositions(white[0], white[1], white[2], white[3], white[4], white[5]);
+        blackPositions = new PiecePositions(black[0], black[1], black[2], black[3], black[4], black[5]);
+
     }
     public PiecePositions getPlayerPieces(int side)
     {
-        if (side == 8)
-        {
-            return blackPositions;
-        }
+        if (side == 8) return blackPositions;
+
         return whitePositions;
     }
     public void updateBoardWithMove(Move move)
     {
+
         PositionState lastState = state.Peek();
-        int capturedPiece = 0;
-        if (lastState.NextToMove == 8){
-            whitePositions.positions[(move.MovedPiece & 7)-1] ^= (BitBoard)move.TargetSquare | (BitBoard)move.SourceSquare;
-            for (int i = 0; i < blackPositions.positions.Length; i++){
+        int capturedPiece = -1;
+        int enPassantTarget = -1;
+        int promote = -1;
+        bool didCapture = false;
+        CastlingFlags whiteFlags = lastState.WhiteCastlingRights;
+        CastlingFlags blackFlags = lastState.BlackCastlingRights;
+
+        if((move.MovedPiece & 7) == 1){
+
+            if(lastState.NextToMove == 8) 
+                enPassantTarget = move.TargetSquare == move.SourceSquare + 16 ? enPassantTarget = move.TargetSquare - 8 : -1;
+            else if(lastState.NextToMove == 16) 
+                enPassantTarget = move.TargetSquare == move.SourceSquare - 16 ? enPassantTarget = move.TargetSquare + 8 : -1;
+
+            if((whitePromote & (BitBoard)move.TargetSquare) > 0) {
+                promote = 13;
+                whitePositions.positions[5] |= (BitBoard)move.TargetSquare;
+                }
+            if((blackPromote & (BitBoard)move.TargetSquare) > 0) {
+                promote = 21;
+                blackPositions.positions[5] |= (BitBoard)move.TargetSquare;
+            }
+
+        }
+        
+        if(move.MovedPiece == 12 && move.SourceSquare == 7) whiteFlags = whiteFlags == CastlingFlags.Both ? CastlingFlags.QueenSide : CastlingFlags.None;
+        if(move.MovedPiece == 12 && move.SourceSquare == 0) whiteFlags = whiteFlags == CastlingFlags.Both ? CastlingFlags.KingSide : CastlingFlags.None;
+        if(move.MovedPiece == 20 && move.SourceSquare == 63) blackFlags = blackFlags == CastlingFlags.Both ? CastlingFlags.QueenSide : CastlingFlags.None;
+        if(move.MovedPiece == 20 && move.SourceSquare == 56) blackFlags = blackFlags == CastlingFlags.Both ? CastlingFlags.KingSide : CastlingFlags.None;
+        
+        if(move.MovedPiece == 14) whiteFlags = CastlingFlags.None;
+        if(move.MovedPiece == 22) blackFlags = CastlingFlags.None;
+
+        if (lastState.NextToMove == 8)
+        {
+
+            whitePositions.positions[(move.MovedPiece & 7) - 1] ^= (BitBoard)move.TargetSquare | (BitBoard)move.SourceSquare;
+
+            for (int i = 0; i < blackPositions.positions.Length; i++)
+            {
+
                 blackPositions.positions[i] &= ~(BitBoard)move.TargetSquare;
-                capturedPiece = (blackPositions.positions[i] & ~(BitBoard)move.TargetSquare)> 0 ? (i+1)|16:capturedPiece;
+                capturedPiece = (blackPositions.positions[i] & ~(BitBoard)move.TargetSquare) > 0 ? (i + 1) | 16 : capturedPiece;
+                didCapture = ((blackPositions.positions[i] & ~(BitBoard)move.TargetSquare) > 0) || didCapture;
+
             }
-            }
-        else{
-            blackPositions.positions[(move.MovedPiece & 7)-1] ^= (BitBoard)move.TargetSquare | (BitBoard)move.SourceSquare;
-            for (int i = 0; i < whitePositions.positions.Length; i++){
+
+        }
+        else
+        {
+
+            blackPositions.positions[(move.MovedPiece & 7) - 1] ^= (BitBoard)move.TargetSquare | (BitBoard)move.SourceSquare;
+
+            for (int i = 0; i < whitePositions.positions.Length; i++)
+            {
+
                 whitePositions.positions[i] &= ~(BitBoard)move.TargetSquare;
-                capturedPiece = (whitePositions.positions[i] & ~(BitBoard)move.TargetSquare)> 0 ? (i+1)|8:capturedPiece;
+                capturedPiece = (whitePositions.positions[i] & ~(BitBoard)move.TargetSquare) > 0 ? (i + 1) | 8 : capturedPiece;
+                didCapture = ((whitePositions.positions[i] & ~(BitBoard)move.TargetSquare) > 0) || didCapture;
+
             }
-            }
+
+        }
+        
         PositionState newState = new(move,
-        lastState.WhiteCastlingRights, 
-        lastState.BlackCastlingRights, 
-        lastState.NextToMove == 8 ? 16:8,
-        -1,
-        lastState.HalfMoveClock + 1,
+        whiteFlags,
+        blackFlags,
+        lastState.NextToMove ^ 24,
+        enPassantTarget,
+        didCapture ? 0: lastState.HalfMoveClock + 1,
         lastState.FullMoveCount + 1,
         capturedPiece,
-        move.TargetSquare
+        move.TargetSquare,
+        promote
         );
+
         state.Push(newState);
+
     }
 
     public int PieceAt(int square)
     {
+        
         int returno = 0;
         BitBoard[] allposition = whitePositions.positions.Concat(blackPositions.positions).ToArray();
+
         for (int i = 0; i < allposition.Length; i++)
         {
-            if ((allposition[i] & (BitBoard)square ) > 0) 
-                returno = i > 6 ? (i % 6) + 1 | 16 : i + 1 | 8;
+            if ((allposition[i] & (BitBoard)square) > 0) returno = i > 6 ? (i % 6) + 1 | 16 : i + 1 | 8;
         }
+
         return returno;
     }
 
     //Generation
     public static BitBoard[,] generateLookupTable(bool isRook)
     {
+
         BitBoard H = (BitBoard)0x101010101010101;
         BitBoard H2 = (BitBoard)0x8080808080808080;
         BitBoard D = (BitBoard)0xff818181818181ff;
@@ -169,6 +231,7 @@ public class Position
         BitBoard NE = (BitBoard)0x1010101010101ff;
         BitBoard SE = (BitBoard)0xff01010101010101;
         BitBoard SW = (BitBoard)0xff80808080808080;
+
         BitBoard[] endPos = {
         SW,S,S,S,S,S,S,SE,
          W,D,D,D,D,D,D,E,
@@ -179,46 +242,64 @@ public class Position
          W,D,D,D,D,D,D,E,
         NW,N,N,N,N,N,N,NE
         };
-        BitBoard[,] returno = new BitBoard[64,1 << 13];
+
+        BitBoard[,] returno = new BitBoard[64, 1 << 13];
+        
         for (int i = 0; i < 64; i++)
         {
+
             BitBoard mask = isRook ? PiecePositions.rookAttack(i) : PiecePositions.bishopAttack(i);
             mask &= ~endPos[i];
             BitBoard[] blockingMasks = createBlockers(mask);
+
             foreach (BitBoard blocker in blockingMasks)
             {
+
                 ulong key = isRook ? ((ulong)blocker * PrecomputedMagics.RookMagics[i]) >> PrecomputedMagics.RookShifts[i] :
                 (ulong)blocker * PrecomputedMagics.BishopMagics[i] >> PrecomputedMagics.BishopShifts[i];
                 BitBoard legalMoves = generateLegalMoves(i, blocker, isRook);
-                returno[i,key] = legalMoves;
+                returno[i, key] = legalMoves;
+
             }
+
         }
         return returno;
 
         BitBoard[] createBlockers(BitBoard mask)
         {
+
             List<int> attackbits = new List<int>();
+
             for (int i = 0; i < 64; i++)
             {
+
                 if (((mask >> i) & BitBoard.one) == 1)
                 {
                     attackbits.Add(i);
                 }
+                
             }
+
             int totalPaths = 1 << attackbits.Count;
             BitBoard[] blockers = new BitBoard[totalPaths];
+
             for (int pattern = 0; pattern < totalPaths; pattern++)
             {
+
                 for (int bitIndex = 0; bitIndex < attackbits.Count; bitIndex++)
                 {
                     int bit = (pattern >> bitIndex) & 1;
                     blockers[pattern] |= new BitBoard((ulong)bit) << attackbits[bitIndex];
                 }
+
             }
+
             return blockers;
+
         }
         BitBoard generateLegalMoves(int index, BitBoard blocker, bool isRook)
         {
+
             BitBoard returno = new BitBoard();
             int[] rookDir = { 1, 8, -1, -8 };
             int[] bishopDir = { 7, 9, -7, -9 };
@@ -226,14 +307,23 @@ public class Position
 
             for (int i = 0; i < 4; i++)
             {
+
                 BitBoard piece = (BitBoard)index;
-                while(((piece & blocker) == 0)&&(piece > 0)&&((piece & endPos[index]) == 0) && !(((BitBoard)index & H) > 0 && (directions[i] ==  -1 || directions[i] ==  -9 ||directions[i] ==  7))&& !(((BitBoard)index & H2) > 0 && (directions[i] ==  1 || directions[i] ==  -7 || directions[i] ==  9))){
+                
+                while (((piece & blocker) == 0) && (piece > 0) && ((piece & endPos[index]) == 0) && !(((BitBoard)index & H) > 0 && (directions[i] == -1 || directions[i] == -9 || directions[i] == 7)) && !(((BitBoard)index & H2) > 0 && (directions[i] == 1 || directions[i] == -7 || directions[i] == 9)))
+                {
+
                     piece <<= directions[i];
                     returno |= piece;
+
                 }
+
             }
+
             return returno;
+
         }
+
     }
 
 
@@ -249,8 +339,9 @@ public class PositionState
     public int EnPassantTarget { get; }
     public int HalfMoveClock { get; }
     public int FullMoveCount { get; }
-    public int? CapturedPieceType { get; }
-    public int? CaptureSquare { get; }
+    public int CapturedPieceType { get; }
+    public int CaptureSquare { get; }
+    public int PromotedToPiece { get; }
     public PositionState()
     {
         AppliedMove = new Move();
@@ -261,7 +352,7 @@ public class PositionState
         HalfMoveClock = 1;
         FullMoveCount = 0;
     }
-    public PositionState(Move move, CastlingFlags whiteflag, CastlingFlags blackflag, int nextToMove, int enPassantTarget, int halfMoveClock, int fullMoveCount, int? capturedPiece, int? captureSquare)
+    public PositionState(Move move, CastlingFlags whiteflag, CastlingFlags blackflag, int nextToMove, int enPassantTarget, int halfMoveClock, int fullMoveCount, int capturedPiece, int captureSquare, int promote)
     {
         AppliedMove = move;
         WhiteCastlingRights = whiteflag;
@@ -272,6 +363,7 @@ public class PositionState
         FullMoveCount = fullMoveCount;
         CapturedPieceType = capturedPiece;
         CaptureSquare = captureSquare;
+        PromotedToPiece = promote;
     }
 }
 // Curtasy of Sebastion Lague
