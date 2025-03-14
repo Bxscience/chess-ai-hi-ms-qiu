@@ -24,6 +24,8 @@ public class Game : MonoBehaviour
     private PlayerInput mouseInputAction;
     private MoveGenerator moveGenerator = new();
     private List<Move> moves;
+    private BitBoard whitePromoteSquares = (BitBoard)0xff00000000000000;
+    private BitBoard blackPromoteSquares = new BitBoard(0xff);
     private readonly Dictionary<string, short> posLookup = new Dictionary<string, short> { { "A", 1 }, { "B", 2 }, { "C", 3 }, { "D", 4 }, { "E", 5 }, { "F", 6 }, { "G", 7 }, { "H", 8 } };
     void Awake()
     {
@@ -58,8 +60,8 @@ public class Game : MonoBehaviour
         gameState.state.Push(startState);
         moveGenerator.initializeLookup();
         initalizeBoard();
-        
-        
+
+
     }
     void Update()
     {
@@ -87,15 +89,16 @@ public class Game : MonoBehaviour
                 int index = i * 8 + j;
                 tiles[index] = Instantiate(tile, new Vector3(j, 0, i), Quaternion.identity);
                 Renderer mat = tiles[index].GetComponent<Renderer>();
-                mat.material.color = (i + j) % 2 == 0 ? Color.white : Color.black;
+                mat.material.color = (i + j) % 2 == 0 ? Color.white : Color.gray;
                 if ((board[index] & 7) != 0)
                 {
                     gameObjectBoard[index] = Instantiate(pieces[board[index] & 7], new Vector3(j, 0, i), Quaternion.identity);
                     gameObjectBoard[index].transform.localScale = Vector3.one;
-                    if(board[index] >> 3 == 1) 
+                    if (board[index] >> 3 == 1)
                         gameObjectBoard[index].GetComponent<Renderer>().material.color = Color.white;
                     else
-                        gameObjectBoard[index].GetComponent<Renderer>().material.color = Color.black; gameObjectBoard[index].transform.rotation = Quaternion.Euler(0, 180, 0);
+                        gameObjectBoard[index].GetComponent<Renderer>().material.color = Color.black; 
+                    gameObjectBoard[index].transform.rotation = Quaternion.Euler(0, 180, 0);
                 }
             }
         }
@@ -126,7 +129,7 @@ public class Game : MonoBehaviour
                     gameState.state.Push(new PositionState(currentMove, CastlingFlags.Both, CastlingFlags.Both, sideToMove ^ 24, 0, 1, 0, null, null));
                     foreach (Move move in moves)
                     {
-                        tiles[move.TargetSquare].GetComponent<Renderer>().material.color = (move.TargetSquare % 8 + move.TargetSquare / 8) % 2 == 0 ? Color.white : Color.black;
+                        tiles[move.TargetSquare].GetComponent<Renderer>().material.color = (move.TargetSquare % 8 + move.TargetSquare / 8) % 2 == 0 ? Color.white : Color.gray;
                     }
                 }
                 else
@@ -135,7 +138,7 @@ public class Game : MonoBehaviour
                     selectedTile.GetComponent<Renderer>().material.color = lastTileColor;
                     foreach (Move move in moves)
                     {
-                        tiles[move.TargetSquare].GetComponent<Renderer>().material.color = (move.TargetSquare % 8 + move.TargetSquare / 8) % 2 == 0 ? Color.white : Color.black;
+                        tiles[move.TargetSquare].GetComponent<Renderer>().material.color = (move.TargetSquare % 8 + move.TargetSquare / 8) % 2 == 0 ? Color.white : Color.gray;
                     }
                 }
             }
@@ -175,9 +178,39 @@ public class Game : MonoBehaviour
             }
         }
     }
-    
+    void botMove()
+    {
+        float score = Evaluator.EvaluateBoard(gameState);
+        float alpha = Mathf.Infinity;
+        float beta = -Mathf.Infinity;
+        foreach (Move move in moveGenerator.generateMoves(gameState))
+        {
+            gameState.updateBoardWithMove(move);
+
+            if (beta > score)
+            {
+                if (alpha >= score)
+                    
+                beta = score;
+            }
+
+        }
+    }
+
     //Helper functions
-    void updateBoardWithMove(Move move)
+    private void addPositionStateToStack(Move move){
+        PositionState lastState = gameState.state.Peek();
+        CastlingFlags blackflags = lastState.BlackCastlingRights;
+        CastlingFlags whiteflags = lastState.WhiteCastlingRights;
+        if((move.MovedPiece & 7) == 6){
+            
+        }
+        gameState.state.Push(new());
+    }
+    private void undoLastMove(){
+        gameState.state.Pop();
+    }
+    private void updateBoardWithMove(Move move)
     {
         board[move.TargetSquare] = board[move.SourceSquare];
         board[move.SourceSquare] = 0;

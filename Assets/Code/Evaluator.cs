@@ -15,12 +15,32 @@ public static class Evaluator {
         {
             score += (board.whitePositions.allPositions &(BitBoard)i )> 0 ? pieceEval[board.PieceAt(i) & 7]: 0;
             score -= (board.blackPositions.allPositions &(BitBoard)i )> 0 ? pieceEval[board.PieceAt(i) & 7]: 0;
+            int piece = board.PieceAt(i);
+            switch(piece & 7){
+                case 1:
+                score +=pawnValue(board,i, piece & 24);
+                break;
+                case 2:
+                score +=bishopValue(board,i, piece & 24);
+                break;
+                case 3:
+                score +=knightValue(board, i, piece & 24);
+                break;
+                case 4:
+                score +=rookValue(board,i, piece & 24);
+                break;
+                case 5:
+                score +=queenValue(board,i, piece & 24);
+                break;
+                case 6:
+                score +=kingValue(board, i, piece & 24);
+                break;
+            }
         }
         return score;
     }
-    private static float pawnValue(Position board, int square){
+    private static float pawnValue(Position board, int square, int sideToMove){
         float score = 0;
-        int sideToMove = board.state.Peek().NextToMove;
 
         //stacked pawns
 
@@ -33,6 +53,8 @@ public static class Evaluator {
 
         //blockage of Stop
 
+
+
         //passed pawn
 
         BitBoard file = (BitBoard)0x101010101010101;
@@ -42,14 +64,13 @@ public static class Evaluator {
             BitBoard enemyPawn = sideToMove == 8 ? board.blackPositions.pawn: board.whitePositions.pawn;
             int filePos = square % 8;
             scan |= scan << Math.Max(0, filePos-1) | scan << Math.Min(7, filePos+1); 
-            score += (enemyPawn & scan) > 0? 50:0;
+            score += (enemyPawn & scan) > 0? 20:0;
         }
 
         return score;
     }
-    private static float bishopValue(Position board, int square){
+    private static float bishopValue(Position board, int square, int sideToMove){
         float score = 0;
-        int sideToMove = board.state.Peek().NextToMove;
 
         //bishopDrought
 
@@ -62,15 +83,14 @@ public static class Evaluator {
                 isDrought = false;
             enemyBishopBoard ^= enemyBishopBoard & -enemyBishopBoard;
         }
-        if(isDrought) score += sideToMove == 8 ? 100:-100;
+        if(isDrought) score += sideToMove == 8 ? 50:-50;
 
         //badBishop
 
         return score;
     }
-    private static float knightValue(Position board, int square){
+    private static float knightValue(Position board, int square, int sideToMove){
         float score = 0;
-        int sideToMove = board.state.Peek().NextToMove;
 
         //value loss as pawns dissappear
 
@@ -80,14 +100,14 @@ public static class Evaluator {
             count++;
             allPawns ^= allPawns & -allPawns;
         }
-        score += sideToMove == 8 ? -6*count:6*count;
+        score += sideToMove == 8 ? 3*(count-16):-3*(count-16);
 
         //outpost
+
         return score;
     }
-    private static float rookValue(Position board, int square){
+    private static float rookValue(Position board, int square, int sideToMove){
         float score = 0;
-        int sideToMove = board.state.Peek().NextToMove;
 
         //value gained as pawns dissappear
 
@@ -97,13 +117,13 @@ public static class Evaluator {
             count++;
             allPawns ^= allPawns & -allPawns;
         }
-        score += sideToMove == 8 ? 5*(16-count):-5*(16-count);
+        score += sideToMove == 8 ? -2*(count-16):2*(count-16);
 
         //king blocking pentalty
 
         return score;
     }
-    private static float queenValue(Position board, int square){
+    private static float queenValue(Position board, int square, int sideToMove){
         float score = 0;
 
         //early movement penalty
@@ -113,13 +133,13 @@ public static class Evaluator {
 
         return score;
     }
-    private static float kingValue(Position board, int square){
+    private static float kingValue(Position board, int square, int sideToMove){
         float score = 0;
-        int sideToMove= board.state.Peek().NextToMove;
 
         //king trophism
 
         //pawn shield LOOPING PROBLEM
+
         int negative = sideToMove == 8 ? 1:-1;
         BitBoard pawns = sideToMove == 8 ? board.whitePositions.pawn:board.blackPositions.pawn;
         if( ((((BitBoard)square << (negative * 8) & pawns) > 0) || ((BitBoard)square << (negative * 16) & pawns) > 0) && 
@@ -128,8 +148,20 @@ public static class Evaluator {
             score += 40;
 
         //pawn storm
-
+        
         //phantom mobility
+
+        BitBoard attack = PiecePositions.bishopAttack(square) | PiecePositions.rookAttack(square);
+        BitBoard enemy = sideToMove == 8 ? board.blackPositions.allPositions:board.whitePositions.allPositions;
+        BitBoard danger = attack & enemy;
+        while(danger > 0){
+            if(board.PieceAt(BitBoard.bitscan(danger)) == (2 | (sideToMove ^ 24)) ||
+            board.PieceAt(BitBoard.bitscan(danger)) == (4 | (sideToMove ^ 24)) ||
+            board.PieceAt(BitBoard.bitscan(danger)) == (5 | (sideToMove ^ 24))) 
+                score += sideToMove == 8 ? -10:10;
+            danger ^= danger & -danger; 
+        }
+        
 
         return score;
     }

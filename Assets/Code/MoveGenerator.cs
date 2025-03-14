@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.PlayerLoop;
@@ -12,6 +13,10 @@ public class MoveGenerator
     private BitBoard[] knightLookup;
     private BitBoard rank2 = (BitBoard)(ulong)0xff00;
     private BitBoard rank7 = (BitBoard)0xff000000000000;
+    private BitBoard whiteKingsideCastleBitboard = new(0x60);
+    private BitBoard whiteQueensideCastleBitboard = new(0xe);
+    private BitBoard blackKingsideCastleBitboard = new(0x6000000000000000);
+    private BitBoard blackQueensideCastleBitboard = new(0xe00000000000000);
     public void initializeLookup()
     {
         rookLookup = Position.generateLookupTable(true);
@@ -47,6 +52,33 @@ public class MoveGenerator
     {
         BitBoard attack = PiecePositions.kingAttack(square);
         attack &= ~(board.state.Peek().NextToMove == 8 ? board.whitePositions.allPositions:board.blackPositions.allPositions);
+        if(board.state.Peek().NextToMove == 8 && 
+        (board.state.Peek().WhiteCastlingRights == CastlingFlags.Both
+        ||board.state.Peek().WhiteCastlingRights == CastlingFlags.KingSide) &&
+        (board.whitePositions.allPositions | board.blackPositions.allPositions & whiteKingsideCastleBitboard) == 0
+        ){
+            attack |= new BitBoard(0x40);
+        }
+        if(board.state.Peek().NextToMove == 8 && 
+        (board.state.Peek().WhiteCastlingRights == CastlingFlags.Both
+        ||board.state.Peek().WhiteCastlingRights == CastlingFlags.QueenSide) &&
+        (board.whitePositions.allPositions | board.blackPositions.allPositions & whiteQueensideCastleBitboard) == 0
+        ){
+            attack |= new BitBoard(2);
+        }
+        if(board.state.Peek().NextToMove == 16 && 
+        (board.state.Peek().BlackCastlingRights == CastlingFlags.Both || board.state.Peek().BlackCastlingRights == CastlingFlags.KingSide) &&
+        (board.whitePositions.allPositions | board.blackPositions.allPositions & blackKingsideCastleBitboard) == 0
+        ){
+            attack |= new BitBoard(0x4000000000000000);
+        }
+        if(board.state.Peek().NextToMove == 16 && 
+        (board.state.Peek().BlackCastlingRights == CastlingFlags.Both || board.state.Peek().BlackCastlingRights == CastlingFlags.QueenSide) &&
+        (board.whitePositions.allPositions | board.blackPositions.allPositions & blackQueensideCastleBitboard) == 0
+        ){
+            attack |= new BitBoard(0x200000000000000);
+        }
+
         return createMoves(attack, square);
     }
     public List<Move> createSlidingMove(Position board, int square)
@@ -79,46 +111,33 @@ public class MoveGenerator
         attack &= ~(playerToMove == 8 ? board.whitePositions.allPositions : board.blackPositions.allPositions);
         return createMoves(attack, square);
     }
-    public static List<Move> generateMoves(Position board)
+    public List<Move> generateMoves(Position board)
     {
         List<Move> moves = new List<Move>();
+        BitBoard[] allPieces = board.whitePositions.positions.Concat(board.blackPositions.positions).ToArray();
 
-        // Span<BitBoard>BishopMagicLookup = board.generateLookupTable(false);
-        // BitBoard allMask = board.whitePositions.allPositions | board.blackPositions.allPositions;
-        // for(int i = 0; i < 64; i++)
-        // {
-        //     BitBoard attackMap = BitBoard.zero;
-        //     int piece = board.PieceAt(i);
-        //     switch (piece & 7)
-        //     {
-        //         case 1:
-        //         attackMap = piece >> 3 == 1? PiecePositions.pawnAttack((BitBoard)i, true):PiecePositions.pawnAttack((BitBoard)i, false);
-        //         break;
-        //         case 2:
-        //         attackMap = BishopMagicLookup[(int)((ulong)(PiecePositions.bishopAttack((BitBoard)i) & allMask )* PrecomputedMagics.BishopMagics[i] >> PrecomputedMagics.BishopShifts[i])];
-        //         break;
-        //         case 3:
-        //         attackMap = PiecePositions.knightAttack((BitBoard)i);
-        //         break;
-        //         case 4:
-        //         attackMap = RookMagicLookUp[(int)((ulong)(PiecePositions.rookAttack((BitBoard)i) & allMask )* PrecomputedMagics.RookMagics[i] >> PrecomputedMagics.RookShifts[i])];
-        //         break;
-        //         case 5:
-        //         attackMap = BishopMagicLookup[(int)((ulong)(PiecePositions.bishopAttack((BitBoard)i) & allMask )* PrecomputedMagics.BishopMagics[i] >> PrecomputedMagics.BishopShifts[i])] |
-        //         RookMagicLookUp[(int)((ulong)(PiecePositions.rookAttack((BitBoard)i) & allMask )* PrecomputedMagics.RookMagics[i] >> PrecomputedMagics.RookShifts[i])];
-        //         break;
-        //         case 6:
-        //         attackMap = PiecePositions.kingAttack((BitBoard)i);
-        //         break;
-        //     }
-        //     attackMap &= ~(piece >> 3 == 1? board.whitePositions.allPositions: board.blackPositions.allPositions);
-        //     for (int j = 0; j < 64; j++)
-        //     {
-        //         if((attackMap & (BitBoard)j)> 0){
-        //             moves.Add(new Move(i ,j ,piece, null));
-        //         }
-        //     }
-        // }
+        for (int i = 0; i < 12; i++)
+        {
+            BitBoard pieces = allPieces[i];
+            while(pieces > 0){
+                int piecePosition = BitBoard.bitscan(pieces);
+                switch(i){
+                    case 0: moves.AddRange(createJumpingMove(board, piecePosition)); break;
+                    case 1: moves.AddRange(createSlidingMove(board, piecePosition)); break;
+                    case 2: moves.AddRange(createJumpingMove(board, piecePosition)); break;
+                    case 3: moves.AddRange(createSlidingMove(board, piecePosition)); break;
+                    case 4: moves.AddRange(createSlidingMove(board, piecePosition)); break;
+                    case 5: moves.AddRange(createKingMove(board, piecePosition)); break;
+                    case 6: moves.AddRange(createJumpingMove(board, piecePosition)); break;
+                    case 7: moves.AddRange(createSlidingMove(board, piecePosition)); break;
+                    case 8: moves.AddRange(createJumpingMove(board, piecePosition)); break;
+                    case 9: moves.AddRange(createSlidingMove(board, piecePosition)); break;
+                    case 10: moves.AddRange(createSlidingMove(board, piecePosition)); break;
+                    case 11: moves.AddRange(createKingMove(board, piecePosition)); break;
+                }
+                pieces ^= pieces & -pieces;
+            }
+        }
 
         return moves;
     }
