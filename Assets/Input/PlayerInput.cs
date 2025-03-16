@@ -35,6 +35,24 @@ public partial class @PlayerInput: IInputActionCollection2, IDisposable
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""Undo"",
+                    ""type"": ""Button"",
+                    ""id"": ""a63997b5-6724-4ddc-861d-960c7b494f7a"",
+                    ""expectedControlType"": ""Button"",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""Promote"",
+                    ""type"": ""Button"",
+                    ""id"": ""0664b804-ef7b-4ee7-b031-ac79a2bb642b"",
+                    ""expectedControlType"": ""Button"",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
                 }
             ],
             ""bindings"": [
@@ -59,6 +77,72 @@ public partial class @PlayerInput: IInputActionCollection2, IDisposable
                     ""action"": ""Click"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""acf6ec18-87e2-4ce2-97a1-990c220a59b7"",
+                    ""path"": ""<Keyboard>/#(Z)"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Undo"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""186cd731-87cb-46a6-a3c2-b7768ac2365e"",
+                    ""path"": ""<Keyboard>/#(1)"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Promote"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""7b8d6fc0-9463-4436-a0e6-28a8fe9be962"",
+                    ""path"": ""<Keyboard>/#(2)"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Promote"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""d8080972-d549-489a-9799-e4bdaf95c285"",
+                    ""path"": ""<Keyboard>/#(3)"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Promote"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""dbc97db0-370e-475c-a7bf-30de42d13aab"",
+                    ""path"": ""<Keyboard>/#(4)"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Promote"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""029716bd-f52c-4a74-ad75-131de114a248"",
+                    ""path"": ""<Keyboard>/#(5)"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Promote"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
                 }
             ]
         }
@@ -68,6 +152,8 @@ public partial class @PlayerInput: IInputActionCollection2, IDisposable
         // PlayerInputs
         m_PlayerInputs = asset.FindActionMap("PlayerInputs", throwIfNotFound: true);
         m_PlayerInputs_Click = m_PlayerInputs.FindAction("Click", throwIfNotFound: true);
+        m_PlayerInputs_Undo = m_PlayerInputs.FindAction("Undo", throwIfNotFound: true);
+        m_PlayerInputs_Promote = m_PlayerInputs.FindAction("Promote", throwIfNotFound: true);
     }
 
     public void Dispose()
@@ -130,11 +216,15 @@ public partial class @PlayerInput: IInputActionCollection2, IDisposable
     private readonly InputActionMap m_PlayerInputs;
     private List<IPlayerInputsActions> m_PlayerInputsActionsCallbackInterfaces = new List<IPlayerInputsActions>();
     private readonly InputAction m_PlayerInputs_Click;
+    private readonly InputAction m_PlayerInputs_Undo;
+    private readonly InputAction m_PlayerInputs_Promote;
     public struct PlayerInputsActions
     {
         private @PlayerInput m_Wrapper;
         public PlayerInputsActions(@PlayerInput wrapper) { m_Wrapper = wrapper; }
         public InputAction @Click => m_Wrapper.m_PlayerInputs_Click;
+        public InputAction @Undo => m_Wrapper.m_PlayerInputs_Undo;
+        public InputAction @Promote => m_Wrapper.m_PlayerInputs_Promote;
         public InputActionMap Get() { return m_Wrapper.m_PlayerInputs; }
         public void Enable() { Get().Enable(); }
         public void Disable() { Get().Disable(); }
@@ -147,6 +237,12 @@ public partial class @PlayerInput: IInputActionCollection2, IDisposable
             @Click.started += instance.OnClick;
             @Click.performed += instance.OnClick;
             @Click.canceled += instance.OnClick;
+            @Undo.started += instance.OnUndo;
+            @Undo.performed += instance.OnUndo;
+            @Undo.canceled += instance.OnUndo;
+            @Promote.started += instance.OnPromote;
+            @Promote.performed += instance.OnPromote;
+            @Promote.canceled += instance.OnPromote;
         }
 
         private void UnregisterCallbacks(IPlayerInputsActions instance)
@@ -154,6 +250,12 @@ public partial class @PlayerInput: IInputActionCollection2, IDisposable
             @Click.started -= instance.OnClick;
             @Click.performed -= instance.OnClick;
             @Click.canceled -= instance.OnClick;
+            @Undo.started -= instance.OnUndo;
+            @Undo.performed -= instance.OnUndo;
+            @Undo.canceled -= instance.OnUndo;
+            @Promote.started -= instance.OnPromote;
+            @Promote.performed -= instance.OnPromote;
+            @Promote.canceled -= instance.OnPromote;
         }
 
         public void RemoveCallbacks(IPlayerInputsActions instance)
@@ -174,5 +276,7 @@ public partial class @PlayerInput: IInputActionCollection2, IDisposable
     public interface IPlayerInputsActions
     {
         void OnClick(InputAction.CallbackContext context);
+        void OnUndo(InputAction.CallbackContext context);
+        void OnPromote(InputAction.CallbackContext context);
     }
 }

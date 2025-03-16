@@ -107,7 +107,6 @@ public class Position
     {
 
         state = new Stack<PositionState>();
-        state.Push(new PositionState());
         whitePositions = new PiecePositions(white[0], white[1], white[2], white[3], white[4], white[5]);
         blackPositions = new PiecePositions(black[0], black[1], black[2], black[3], black[4], black[5]);
 
@@ -164,8 +163,8 @@ public class Position
             {
 
                 blackPositions.positions[i] &= ~(BitBoard)move.TargetSquare;
-                capturedPiece = (blackPositions.positions[i] & ~(BitBoard)move.TargetSquare) > 0 ? (i + 1) | 16 : capturedPiece;
-                didCapture = ((blackPositions.positions[i] & ~(BitBoard)move.TargetSquare) > 0) || didCapture;
+                capturedPiece = (blackPositions.positions[i] & (BitBoard)move.TargetSquare) > 0 ? (i + 1) | 16 : capturedPiece;
+                didCapture = ((blackPositions.positions[i] & (BitBoard)move.TargetSquare) > 0) || didCapture;
 
             }
 
@@ -201,19 +200,44 @@ public class Position
         state.Push(newState);
 
     }
+    public void undoLastMove(){
+
+        PositionState lastState = state.Pop();
+        BitBoard fromTo = (BitBoard)lastState.AppliedMove.SourceSquare | (BitBoard)lastState.AppliedMove.TargetSquare;
+
+        if(lastState.NextToMove == 16){
+
+            whitePositions.positions[(lastState.AppliedMove.MovedPiece & 7)-1] ^= fromTo;
+            
+            if(lastState.CapturedPieceType != -1) 
+                blackPositions.positions[(int)((lastState.CapturedPieceType & 7)-1)] |= (BitBoard)lastState.AppliedMove.TargetSquare;
+
+        }
+
+        else{
+
+            blackPositions.positions[(lastState.AppliedMove.MovedPiece & 7)-1] ^= fromTo;
+            
+            if(lastState.CapturedPieceType != -1) 
+                whitePositions.positions[(int)((lastState.CapturedPieceType & 7)-1)] |= (BitBoard)lastState.AppliedMove.TargetSquare;
+
+        }
+
+    }
 
     public int PieceAt(int square)
     {
         
-        int returno = 0;
         BitBoard[] allposition = whitePositions.positions.Concat(blackPositions.positions).ToArray();
 
         for (int i = 0; i < allposition.Length; i++)
         {
-            if ((allposition[i] & (BitBoard)square) > 0) returno = i > 6 ? (i % 6) + 1 | 16 : i + 1 | 8;
+            if ((allposition[i] & (BitBoard)square) > 0) 
+                 return i >= 6 ? i-5 | 16 : i + 1 | 8;
         }
 
-        return returno;
+        return 0;
+
     }
 
     //Generation

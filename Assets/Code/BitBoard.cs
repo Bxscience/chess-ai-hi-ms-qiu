@@ -1,12 +1,4 @@
 using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Runtime.InteropServices.WindowsRuntime;
-using System.Security.Cryptography.X509Certificates;
-using TMPro;
-using Unity.VisualScripting;
-using UnityEditor.PackageManager;
-using UnityEngine;
 
 public struct BitBoard 
 {
@@ -150,4 +142,13 @@ public static BitBoard flipDiagA1H8(BitBoard a) {
 public static BitBoard bitReversal(BitBoard a){
     return mirrorHorizontal(flipVertical(a));
 }
+    public override int GetHashCode()
+    {
+        return base.GetHashCode();
+    }
+
+    public override bool Equals(object obj)
+    {
+        return base.Equals(obj);
+    }
 }

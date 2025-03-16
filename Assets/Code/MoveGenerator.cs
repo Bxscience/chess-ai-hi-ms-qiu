@@ -49,10 +49,10 @@ public class MoveGenerator
             attack |= isWhite ? (BitBoard)square << 8 & ~(board.whitePositions.allPositions | board.blackPositions.allPositions) : (BitBoard)square >> 8 & ~(board.whitePositions.allPositions | board.blackPositions.allPositions);
 
             if ((rank2 & (BitBoard)square) > 0 && isWhite && attack > 0)
-                attack |= (BitBoard)square << 16;
+                attack |= (BitBoard)square << 16 & ~(board.whitePositions.allPositions | board.blackPositions.allPositions);
 
             else if ((rank7 & (BitBoard)square) > 0 && !isWhite && attack > 0)
-                attack |= (BitBoard)square >> 16;
+                attack |= (BitBoard)square >> 16 & ~(board.whitePositions.allPositions | board.blackPositions.allPositions);
 
         }
 
@@ -69,7 +69,7 @@ public class MoveGenerator
 
         if (board.state.Peek().NextToMove == 8 &&
         (board.state.Peek().WhiteCastlingRights == CastlingFlags.Both || board.state.Peek().WhiteCastlingRights == CastlingFlags.KingSide) &&
-        (board.whitePositions.allPositions | board.blackPositions.allPositions & whiteKingsideCastleBitboard) == 0)
+        ((board.whitePositions.allPositions | board.blackPositions.allPositions) & whiteKingsideCastleBitboard) == 0)
         {
             attack |= new BitBoard(0x40);
         }
@@ -181,12 +181,12 @@ public class MoveGenerator
     {
 
         throw new NotImplementedException();
-        BitBoard[] map = new BitBoard[64];
-        for (int i = 0; i < 64; i++)
-        {
-            map[i] = (BitBoard)i;
-        }
-        return map;
+        //BitBoard[] map = new BitBoard[64];
+        //for (int i = 0; i < 64; i++)
+        //{
+        //    map[i] = (BitBoard)i;
+        //} gh
+        //return map;
 
     }
     private List<Move> createMoves(BitBoard attackMap, int startSquare)
