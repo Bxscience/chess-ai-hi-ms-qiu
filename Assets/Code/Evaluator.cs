@@ -53,9 +53,9 @@ public static class Evaluator {
 
         //stacked pawns
 
-        if(sideToMove == 8 && board.PieceAt(square + 8) == (1 | sideToMove))
+        if( (((BitBoard)square & (BitBoard)0xff00000000000000) == 0) && sideToMove == 8 && board.PieceAt(square + 8) == (1 | sideToMove))
             score -= 50;
-        else if(sideToMove == 16 && board.PieceAt(square - 8) == (1 | sideToMove))
+        else if(((BitBoard)square & new BitBoard(0xff))> 0 && sideToMove == 16 && board.PieceAt(square - 8) == (1 | sideToMove))
             score += 50;
 
         //blockage of Stop

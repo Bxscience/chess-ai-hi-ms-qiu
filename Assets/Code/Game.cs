@@ -35,6 +35,7 @@ public class Game : MonoBehaviour
     {
         playerInput.PlayerInputs.Click.performed += onClick;
         playerInput.PlayerInputs.Undo.performed += undoLastMove;
+        playerInput.PlayerInputs.Test.performed += test;
         playerInput.Enable();
     }
 
@@ -43,6 +44,18 @@ public class Game : MonoBehaviour
         playerInput.Disable();
         playerInput.PlayerInputs.Click.performed -= onClick;
         playerInput.PlayerInputs.Undo.performed -= undoLastMove;
+        playerInput.PlayerInputs.Test.performed -= test;
+    }
+
+    private void test(InputAction.CallbackContext context)
+    {
+        // foreach (Move item in moveGenerator.generateMoves(gameState))
+        // {
+        //     Debug.Log(item.MovedPiece);
+        // }
+        var (x,y) = botMove(1, true, gameState, Mathf.Infinity, Mathf.NegativeInfinity);
+        Debug.Log("start: " + x.SourceSquare + " end: " + x.TargetSquare + " piece: " + x.MovedPiece);
+        
     }
 
     void Start()
@@ -54,7 +67,7 @@ public class Game : MonoBehaviour
 
         for (int j = 0; j < 64; j++)
         {
-            
+
             if (board[j] != 0)
             {
                 if (board[j] >> 3 == 1) white[(board[j] & 7) - 1] |= (BitBoard)j;
@@ -85,7 +98,7 @@ public class Game : MonoBehaviour
         int halfMoveClock = halfMoveClockParse(FEN[4]);
         int fullMoveCount = fullMoveCountParse(FEN[5]);
         return new(new Move(), castlings[0], castlings[1], side, enPassantTarget, halfMoveClock, fullMoveCount, -1, -1, -1);
-        
+
     }
     //For initalizing game objects
     void initalizeBoard()
@@ -96,7 +109,7 @@ public class Game : MonoBehaviour
 
             for (int j = 0; j < 8; j++)
             {
-                
+
                 int index = i * 8 + j;
                 tiles[index] = Instantiate(tile, new Vector3(j, 0, i), Quaternion.identity);
                 Renderer mat = tiles[index].GetComponent<Renderer>();
@@ -110,15 +123,15 @@ public class Game : MonoBehaviour
                     if (board[index] >> 3 == 1)
                         gameObjectBoard[index].GetComponent<Renderer>().material.color = Color.white;
                     else
-                        gameObjectBoard[index].GetComponent<Renderer>().material.color = Color.black; 
+                        gameObjectBoard[index].GetComponent<Renderer>().material.color = Color.black;
                     gameObjectBoard[index].transform.rotation = Quaternion.Euler(0, 180, 0);
-                    
+
                 }
-                
+
             }
 
         }
-        
+
     }
     //Player input
     public void onClick(InputAction.CallbackContext context)
@@ -157,8 +170,12 @@ public class Game : MonoBehaviour
                     {
 
                         tiles[move.TargetSquare].GetComponent<Renderer>().material.color = (move.TargetSquare % 8 + move.TargetSquare / 8) % 2 == 0 ? Color.white : Color.gray;
-                    
+
                     }
+                    
+                    var (x,y) = botMove(1, false, gameState, Mathf.Infinity, Mathf.NegativeInfinity);
+                    updateBoardWithMove(x);
+                    gameState.updateBoardWithMove(x);
 
                 }
 
@@ -172,11 +189,12 @@ public class Game : MonoBehaviour
                     {
                         tiles[move.TargetSquare].GetComponent<Renderer>().material.color = (move.TargetSquare % 8 + move.TargetSquare / 8) % 2 == 0 ? Color.white : Color.gray;
                     }
-                    
+
                 }
 
             }
         }
+
         else if (Physics.Raycast(ray, out RaycastHit hit, 10000, 1 << 6) && gameObjectBoard[(int)(hit.transform.position.x + hit.transform.position.z * 8)] != null && board[(int)(hit.transform.position.x + hit.transform.position.z * 8)] >> 3 << 3 == (int)sideToMove)
         {
 
@@ -189,6 +207,7 @@ public class Game : MonoBehaviour
 
             switch (board[pos] & 7)
             {
+
                 case 1:
                     moves = moveGenerator.createJumpingMove(gameState, pos);
                     break;
@@ -219,71 +238,102 @@ public class Game : MonoBehaviour
 
     }
     //Bot search
-    Move botMove(int depth, Move? optimalMove, float alpha, float beta, bool isMax)
-    {
+    private (Move, float) botMove(int depth, bool isMax, Position gameState, float alpha, float beta){
 
-        if(depth == 0) return (Move)optimalMove;
+        if(depth <= 0) return (new(),Evaluator.EvaluateBoard(gameState));
 
-        float score = Evaluator.EvaluateBoard(gameState);
-        
-        foreach (Move move in moveGenerator.generateMoves(gameState))
-        {
+        float score = isMax? -Mathf.Infinity:Mathf.Infinity;
 
-            gameState.updateBoardWithMove(move);
-            float evaluatedState = Evaluator.EvaluateBoard(gameState);
+        if(isMax){
 
-            if(isMax &&  score < evaluatedState) {
-                score = evaluatedState;
-                optimalMove = move;
+            List<Move> moves = moveGenerator.generateMoves(gameState);
+            Move bestMove = new();
+            int i = 0;
+
+            foreach (Move move in moves)
+            {
+
+                gameState.updateBoardWithMove(move);
+                var(x, y) = botMove(depth - 1, !isMax, gameState, alpha, beta);
+
+                if(score < y){
+                    bestMove = move;
+                    score = y;
+                }
+
+                gameState.undoLastMove();
+                i++;
+
             }
-            
-            if(!isMax &&  score > evaluatedState) {
-                score = evaluatedState;
-                optimalMove = move;
-            }
+
+            return (bestMove,score);
 
         }
 
-        return botMove(depth-1, optimalMove, alpha, beta, !isMax);
+        else{
+
+            List<Move> moves = moveGenerator.generateMoves(gameState);
+            Move bestMove = new();
+            int i = 0;
+
+            foreach (Move move in moves)
+            {
+                gameState.updateBoardWithMove(move);
+                var(x, y) = botMove(depth - 1, !isMax, gameState, alpha, beta);
+
+                if(score > y){
+                    bestMove = move;
+                    score = y;
+                }
+
+                gameState.undoLastMove();
+                i++;
+            }
+            return (bestMove,score);
+
+        }
 
     }
 
     //Helper functions
-    private void updateGameBoardtoGameState(){
+    private void updateGameBoardtoGameState()
+    {
 
         for (int i = 0; i < 8; i++)
         {
 
             for (int j = 0; j < 8; j++)
             {
-                
+
                 int index = i * 8 + j;
                 int piece = gameState.PieceAt(index);
                 board[index] = piece;
 
-                if (piece != 0)
+                if( gameObjectBoard[index] != null) Destroy(gameObjectBoard[index]);
+
+                if (piece != 0 )
                 {
 
-                    Destroy(gameObjectBoard[index]);
                     gameObjectBoard[index] = Instantiate(pieces[piece & 7], new Vector3(j, 0, i), Quaternion.identity);
                     gameObjectBoard[index].transform.localScale = Vector3.one;
 
                     if (piece >> 3 == 1)
                         gameObjectBoard[index].GetComponent<Renderer>().material.color = Color.white;
                     else
-                        gameObjectBoard[index].GetComponent<Renderer>().material.color = Color.black; 
+                        gameObjectBoard[index].GetComponent<Renderer>().material.color = Color.black;
 
                     gameObjectBoard[index].transform.rotation = Quaternion.Euler(0, 180, 0);
-                    
+
                 }
-                
+
             }
 
         }
 
     }
 
-    public void undoLastMove(InputAction.CallbackContext context){
+    public void undoLastMove(InputAction.CallbackContext context)
+    {
 
         PositionState lastState = gameState.state.Peek();
         gameState.undoLastMove();

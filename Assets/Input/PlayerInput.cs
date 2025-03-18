@@ -53,6 +53,15 @@ public partial class @PlayerInput: IInputActionCollection2, IDisposable
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""Test"",
+                    ""type"": ""Button"",
+                    ""id"": ""42fb86e7-d0d4-424d-ae51-6417061fb679"",
+                    ""expectedControlType"": ""Button"",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
                 }
             ],
             ""bindings"": [
@@ -143,6 +152,17 @@ public partial class @PlayerInput: IInputActionCollection2, IDisposable
                     ""action"": ""Promote"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""32699de1-f818-4f57-aef0-f67c943a60e6"",
+                    ""path"": ""<Keyboard>/#(A)"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Test"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
                 }
             ]
         }
@@ -154,6 +174,7 @@ public partial class @PlayerInput: IInputActionCollection2, IDisposable
         m_PlayerInputs_Click = m_PlayerInputs.FindAction("Click", throwIfNotFound: true);
         m_PlayerInputs_Undo = m_PlayerInputs.FindAction("Undo", throwIfNotFound: true);
         m_PlayerInputs_Promote = m_PlayerInputs.FindAction("Promote", throwIfNotFound: true);
+        m_PlayerInputs_Test = m_PlayerInputs.FindAction("Test", throwIfNotFound: true);
     }
 
     public void Dispose()
@@ -218,6 +239,7 @@ public partial class @PlayerInput: IInputActionCollection2, IDisposable
     private readonly InputAction m_PlayerInputs_Click;
     private readonly InputAction m_PlayerInputs_Undo;
     private readonly InputAction m_PlayerInputs_Promote;
+    private readonly InputAction m_PlayerInputs_Test;
     public struct PlayerInputsActions
     {
         private @PlayerInput m_Wrapper;
@@ -225,6 +247,7 @@ public partial class @PlayerInput: IInputActionCollection2, IDisposable
         public InputAction @Click => m_Wrapper.m_PlayerInputs_Click;
         public InputAction @Undo => m_Wrapper.m_PlayerInputs_Undo;
         public InputAction @Promote => m_Wrapper.m_PlayerInputs_Promote;
+        public InputAction @Test => m_Wrapper.m_PlayerInputs_Test;
         public InputActionMap Get() { return m_Wrapper.m_PlayerInputs; }
         public void Enable() { Get().Enable(); }
         public void Disable() { Get().Disable(); }
@@ -243,6 +266,9 @@ public partial class @PlayerInput: IInputActionCollection2, IDisposable
             @Promote.started += instance.OnPromote;
             @Promote.performed += instance.OnPromote;
             @Promote.canceled += instance.OnPromote;
+            @Test.started += instance.OnTest;
+            @Test.performed += instance.OnTest;
+            @Test.canceled += instance.OnTest;
         }
 
         private void UnregisterCallbacks(IPlayerInputsActions instance)
@@ -256,6 +282,9 @@ public partial class @PlayerInput: IInputActionCollection2, IDisposable
             @Promote.started -= instance.OnPromote;
             @Promote.performed -= instance.OnPromote;
             @Promote.canceled -= instance.OnPromote;
+            @Test.started -= instance.OnTest;
+            @Test.performed -= instance.OnTest;
+            @Test.canceled -= instance.OnTest;
         }
 
         public void RemoveCallbacks(IPlayerInputsActions instance)
@@ -278,5 +307,6 @@ public partial class @PlayerInput: IInputActionCollection2, IDisposable
         void OnClick(InputAction.CallbackContext context);
         void OnUndo(InputAction.CallbackContext context);
         void OnPromote(InputAction.CallbackContext context);
+        void OnTest(InputAction.CallbackContext context);
     }
 }

@@ -58,44 +58,45 @@ public class MoveGenerator
 
         attack &= board.state.Peek().NextToMove == 8 ? ~board.whitePositions.allPositions : ~board.blackPositions.allPositions;
 
-        return createMoves(attack, square);
+        return createMoves(attack, square, piece);
 
     }
     public List<Move> createKingMove(Position board, int square)
     {
 
         BitBoard attack = PiecePositions.kingAttack(square);
-        attack &= ~(board.state.Peek().NextToMove == 8 ? board.whitePositions.allPositions : board.blackPositions.allPositions);
+        PositionState state = board.state.Peek();
+        attack &= ~(state.NextToMove == 8 ? board.whitePositions.allPositions : board.blackPositions.allPositions);
 
-        if (board.state.Peek().NextToMove == 8 &&
-        (board.state.Peek().WhiteCastlingRights == CastlingFlags.Both || board.state.Peek().WhiteCastlingRights == CastlingFlags.KingSide) &&
+        if (state.NextToMove == 8 &&
+        (state.WhiteCastlingRights == CastlingFlags.Both || state.WhiteCastlingRights == CastlingFlags.KingSide) &&
         ((board.whitePositions.allPositions | board.blackPositions.allPositions) & whiteKingsideCastleBitboard) == 0)
         {
             attack |= new BitBoard(0x40);
         }
 
-        if (board.state.Peek().NextToMove == 8 &&
-        (board.state.Peek().WhiteCastlingRights == CastlingFlags.Both || board.state.Peek().WhiteCastlingRights == CastlingFlags.QueenSide) &&
+        if (state.NextToMove == 8 &&
+        (state.WhiteCastlingRights == CastlingFlags.Both || state.WhiteCastlingRights == CastlingFlags.QueenSide) &&
         (board.whitePositions.allPositions | board.blackPositions.allPositions & whiteQueensideCastleBitboard) == 0)
         {
             attack |= new BitBoard(2);
         }
 
-        if (board.state.Peek().NextToMove == 16 &&
-        (board.state.Peek().BlackCastlingRights == CastlingFlags.Both || board.state.Peek().BlackCastlingRights == CastlingFlags.KingSide) &&
+        if (state.NextToMove == 16 &&
+        (state.BlackCastlingRights == CastlingFlags.Both || state.BlackCastlingRights == CastlingFlags.KingSide) &&
         (board.whitePositions.allPositions | board.blackPositions.allPositions & blackKingsideCastleBitboard) == 0)
         {
             attack |= new BitBoard(0x4000000000000000);
         }
 
-        if (board.state.Peek().NextToMove == 16 &&
-        (board.state.Peek().BlackCastlingRights == CastlingFlags.Both || board.state.Peek().BlackCastlingRights == CastlingFlags.QueenSide) &&
+        if (state.NextToMove == 16 &&
+        (state.BlackCastlingRights == CastlingFlags.Both || state.BlackCastlingRights == CastlingFlags.QueenSide) &&
         (board.whitePositions.allPositions | board.blackPositions.allPositions & blackQueensideCastleBitboard) == 0)
         {
             attack |= new BitBoard(0x200000000000000);
         }
 
-        return createMoves(attack, square);
+        return createMoves(attack, square, 6 | state.NextToMove);
 
     }
     public List<Move> createSlidingMove(Position board, int square)
@@ -131,16 +132,16 @@ public class MoveGenerator
         attack = (piece & 7) == 4 ? rookLookup[square, ((ulong)(attack & allPieces & ~endPos[square]) * PrecomputedMagics.RookMagics[square]) >> PrecomputedMagics.RookShifts[square]] : attack;
         attack &= ~(playerToMove == 8 ? board.whitePositions.allPositions : board.blackPositions.allPositions);
 
-        return createMoves(attack, square);
+        return createMoves(attack, square, piece);
 
     }
     public List<Move> generateMoves(Position board)
     {
 
         List<Move> moves = new List<Move>();
-        BitBoard[] allPieces = board.whitePositions.positions.Concat(board.blackPositions.positions).ToArray();
+        BitBoard[] allPieces = board.state.Peek().NextToMove == 8 ? board.whitePositions.positions:board.blackPositions.positions;
 
-        for (int i = 0; i < 12; i++)
+        for (int i = 0; i < 6; i++)
         {
 
             BitBoard pieces = allPieces[i];
@@ -158,13 +159,6 @@ public class MoveGenerator
                     case 3: moves.AddRange(createSlidingMove(board, piecePosition)); break;
                     case 4: moves.AddRange(createSlidingMove(board, piecePosition)); break;
                     case 5: moves.AddRange(createKingMove(board, piecePosition)); break;
-
-                    case 6: moves.AddRange(createJumpingMove(board, piecePosition)); break;
-                    case 7: moves.AddRange(createSlidingMove(board, piecePosition)); break;
-                    case 8: moves.AddRange(createJumpingMove(board, piecePosition)); break;
-                    case 9: moves.AddRange(createSlidingMove(board, piecePosition)); break;
-                    case 10: moves.AddRange(createSlidingMove(board, piecePosition)); break;
-                    case 11: moves.AddRange(createKingMove(board, piecePosition)); break;
 
                 }
 
@@ -189,7 +183,7 @@ public class MoveGenerator
         //return map;
 
     }
-    private List<Move> createMoves(BitBoard attackMap, int startSquare)
+    private List<Move> createMoves(BitBoard attackMap, int startSquare, int piece)
     {
 
         List<Move> moves = new();
@@ -197,7 +191,7 @@ public class MoveGenerator
         for (int i = 0; i < 64; i++)
         {
 
-            if ((attackMap & (BitBoard)i) > 0) moves.Add(new Move(startSquare, i, startSquare));
+            if ((attackMap & (BitBoard)i) > 0) moves.Add(new Move(startSquare, i,piece));
 
         }
 
