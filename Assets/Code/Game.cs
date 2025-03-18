@@ -26,6 +26,7 @@ public class Game : MonoBehaviour
     private List<Move> moves;
     private BitBoard whitePromoteSquares = (BitBoard)0xff00000000000000;
     private BitBoard blackPromoteSquares = new BitBoard(0xff);
+    private int count = 0;
     private readonly Dictionary<string, short> posLookup = new Dictionary<string, short> { { "A", 1 }, { "B", 2 }, { "C", 3 }, { "D", 4 }, { "E", 5 }, { "F", 6 }, { "G", 7 }, { "H", 8 } };
     void Awake()
     {
@@ -49,13 +50,9 @@ public class Game : MonoBehaviour
 
     private void test(InputAction.CallbackContext context)
     {
-        // foreach (Move item in moveGenerator.generateMoves(gameState))
-        // {
-        //     Debug.Log(item.MovedPiece);
-        // }
-        var (x,y) = botMove(1, true, gameState, Mathf.Infinity, Mathf.NegativeInfinity);
-        Debug.Log("start: " + x.SourceSquare + " end: " + x.TargetSquare + " piece: " + x.MovedPiece);
-        
+       
+        Evaluator.EvaluateBoard(gameState);
+
     }
 
     void Start()
@@ -113,7 +110,7 @@ public class Game : MonoBehaviour
                 int index = i * 8 + j;
                 tiles[index] = Instantiate(tile, new Vector3(j, 0, i), Quaternion.identity);
                 Renderer mat = tiles[index].GetComponent<Renderer>();
-                mat.material.color = (i + j) % 2 == 0 ? Color.white : Color.gray;
+                mat.material.color = (i + j) % 2 == 0 ? Color.white : Color.black;
 
                 if ((board[index] & 7) != 0)
                 {
@@ -123,7 +120,7 @@ public class Game : MonoBehaviour
                     if (board[index] >> 3 == 1)
                         gameObjectBoard[index].GetComponent<Renderer>().material.color = Color.white;
                     else
-                        gameObjectBoard[index].GetComponent<Renderer>().material.color = Color.black;
+                        gameObjectBoard[index].GetComponent<Renderer>().material.color = Color.gray;
                     gameObjectBoard[index].transform.rotation = Quaternion.Euler(0, 180, 0);
 
                 }
@@ -162,20 +159,20 @@ public class Game : MonoBehaviour
 
                     isMakingMove = false;
                     Move currentMove = new Move(selectedTileIndex, toTileIndex, board[selectedTileIndex]);
-                    updateBoardWithMove(currentMove);
                     gameState.updateBoardWithMove(currentMove);
+                    updateBoardWithMove(currentMove);
                     selectedTile.GetComponent<Renderer>().material.color = lastTileColor;
 
                     foreach (Move move in moves)
                     {
 
-                        tiles[move.TargetSquare].GetComponent<Renderer>().material.color = (move.TargetSquare % 8 + move.TargetSquare / 8) % 2 == 0 ? Color.white : Color.gray;
+                        tiles[move.TargetSquare].GetComponent<Renderer>().material.color = (move.TargetSquare % 8 + move.TargetSquare / 8) % 2 == 0 ? Color.white : Color.black;
 
                     }
                     
-                    var (x,y) = botMove(1, false, gameState, Mathf.Infinity, Mathf.NegativeInfinity);
-                    updateBoardWithMove(x);
-                    gameState.updateBoardWithMove(x);
+                    // var (x,y) = botMove(2, false, gameState, Mathf.Infinity, Mathf.NegativeInfinity);
+                    // gameState.updateBoardWithMove(x);
+                    // updateBoardWithMove(x);
 
                 }
 
@@ -187,7 +184,7 @@ public class Game : MonoBehaviour
 
                     foreach (Move move in moves)
                     {
-                        tiles[move.TargetSquare].GetComponent<Renderer>().material.color = (move.TargetSquare % 8 + move.TargetSquare / 8) % 2 == 0 ? Color.white : Color.gray;
+                        tiles[move.TargetSquare].GetComponent<Renderer>().material.color = (move.TargetSquare % 8 + move.TargetSquare / 8) % 2 == 0 ? Color.white : Color.black;
                     }
 
                 }
@@ -320,7 +317,7 @@ public class Game : MonoBehaviour
                     if (piece >> 3 == 1)
                         gameObjectBoard[index].GetComponent<Renderer>().material.color = Color.white;
                     else
-                        gameObjectBoard[index].GetComponent<Renderer>().material.color = Color.black;
+                        gameObjectBoard[index].GetComponent<Renderer>().material.color = Color.gray;
 
                     gameObjectBoard[index].transform.rotation = Quaternion.Euler(0, 180, 0);
 
@@ -346,11 +343,7 @@ public class Game : MonoBehaviour
         board[move.TargetSquare] = board[move.SourceSquare];
         board[move.SourceSquare] = 0;
 
-        if (gameObjectBoard[move.TargetSquare]) Destroy(gameObjectBoard[move.TargetSquare]);
-
-        gameObjectBoard[move.SourceSquare].transform.position = new Vector3(move.TargetSquare % 8, 0, move.TargetSquare / 8);
-        gameObjectBoard[move.TargetSquare] = gameObjectBoard[move.SourceSquare];
-        gameObjectBoard[move.SourceSquare] = null;
+        updateGameBoardtoGameState();
 
     }
     //FEN parse

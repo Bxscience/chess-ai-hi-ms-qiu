@@ -91,7 +91,16 @@ public class PiecePositions
     public static BitBoard kingAttack(int piece)
     {
         BitBoard bitboardPiece = (BitBoard)piece;
-        return bitboardPiece.Nshift() | bitboardPiece.Sshift() | bitboardPiece.Eshift() | bitboardPiece.Wshift() | bitboardPiece.NEshift() | bitboardPiece.NWshift() | bitboardPiece.SEshift() | bitboardPiece.SWshift();
+        int file = piece & 7;
+        BitBoard returno = new();
+        if(file < 7){
+            returno |= bitboardPiece << 1 | bitboardPiece << 9 | bitboardPiece >> 7;
+        }
+        if(file > 0){
+            returno |= bitboardPiece >> 1 | bitboardPiece << 7 | bitboardPiece >> 9;
+        }
+        returno |= bitboardPiece.Nshift() | bitboardPiece.Sshift();
+        return returno;
     }
 }
 
@@ -131,9 +140,9 @@ public class Position
         if((move.MovedPiece & 7) == 1){
 
             if(lastState.NextToMove == 8) 
-                enPassantTarget = move.TargetSquare == move.SourceSquare + 16 ? enPassantTarget = move.TargetSquare - 8 : -1;
+                enPassantTarget = move.TargetSquare == move.SourceSquare + 16 ? move.TargetSquare - 8 : -1;
             else if(lastState.NextToMove == 16) 
-                enPassantTarget = move.TargetSquare == move.SourceSquare - 16 ? enPassantTarget = move.TargetSquare + 8 : -1;
+                enPassantTarget = move.TargetSquare == move.SourceSquare - 16 ? move.TargetSquare + 8 : -1;
 
             if((whitePromote & (BitBoard)move.TargetSquare) > 0) {
                 promote = 13;
@@ -144,15 +153,38 @@ public class Position
                 blackPositions.positions[5] |= (BitBoard)move.TargetSquare;
             }
 
+            if(lastState.EnPassantTarget == move.TargetSquare){
+
+                didCapture = true;
+                capturedPiece = 1 | (lastState.NextToMove ^ 24);
+                if(lastState.NextToMove == 8) blackPositions.positions[0] ^= (BitBoard)(move.TargetSquare - 8);
+                else blackPositions.positions[0] ^= (BitBoard)(move.TargetSquare +8);
+
+            }
+
         }
         
-        if(move.MovedPiece == 12 && move.SourceSquare == 7) whiteFlags = whiteFlags == CastlingFlags.Both ? CastlingFlags.QueenSide : CastlingFlags.None;
-        if(move.MovedPiece == 12 && move.SourceSquare == 0) whiteFlags = whiteFlags == CastlingFlags.Both ? CastlingFlags.KingSide : CastlingFlags.None;
-        if(move.MovedPiece == 20 && move.SourceSquare == 63) blackFlags = blackFlags == CastlingFlags.Both ? CastlingFlags.QueenSide : CastlingFlags.None;
-        if(move.MovedPiece == 20 && move.SourceSquare == 56) blackFlags = blackFlags == CastlingFlags.Both ? CastlingFlags.KingSide : CastlingFlags.None;
+        if(move.MovedPiece == 12) whiteFlags = whiteFlags == CastlingFlags.Both ? CastlingFlags.QueenSide : CastlingFlags.None;
+        if(move.MovedPiece == 12) whiteFlags = whiteFlags == CastlingFlags.Both ? CastlingFlags.KingSide : CastlingFlags.None;
+        if(move.MovedPiece == 20) blackFlags = blackFlags == CastlingFlags.Both ? CastlingFlags.QueenSide : CastlingFlags.None;
+        if(move.MovedPiece == 20) blackFlags = blackFlags == CastlingFlags.Both ? CastlingFlags.KingSide : CastlingFlags.None;
         
-        if(move.MovedPiece == 14) whiteFlags = CastlingFlags.None;
-        if(move.MovedPiece == 22) blackFlags = CastlingFlags.None;
+        if(move.MovedPiece == 14) {
+            whiteFlags = CastlingFlags.None;
+            if(move.TargetSquare == 1){
+                whitePositions.positions[3] ^= new BitBoard(5);
+            }
+            if(move.TargetSquare == 6)
+                whitePositions.positions[3] ^= new BitBoard(160);
+        }
+        if(move.MovedPiece == 22) {
+            blackFlags = CastlingFlags.None;
+            if(move.TargetSquare == 57){
+                blackPositions.positions[3] ^= new BitBoard(0x500000000000000);
+            }
+            if(move.TargetSquare == 62)
+                blackPositions.positions[3] ^= new BitBoard(0xa000000000000000);
+        }
 
         if (lastState.NextToMove == 8)
         {
@@ -162,9 +194,9 @@ public class Position
             for (int i = 0; i < blackPositions.positions.Length; i++)
             {
 
-                blackPositions.positions[i] &= ~(BitBoard)move.TargetSquare;
                 capturedPiece = (blackPositions.positions[i] & (BitBoard)move.TargetSquare) > 0 ? (i + 1) | 16 : capturedPiece;
                 didCapture = ((blackPositions.positions[i] & (BitBoard)move.TargetSquare) > 0) || didCapture;
+                blackPositions.positions[i] &= ~(BitBoard)move.TargetSquare;      
 
             }
 
@@ -177,9 +209,10 @@ public class Position
             for (int i = 0; i < whitePositions.positions.Length; i++)
             {
 
+                capturedPiece = (whitePositions.positions[i] & (BitBoard)move.TargetSquare) > 0 ? (i + 1) | 8 : capturedPiece;
+                didCapture = ((whitePositions.positions[i] & (BitBoard)move.TargetSquare) > 0) || didCapture;
                 whitePositions.positions[i] &= ~(BitBoard)move.TargetSquare;
-                capturedPiece = (whitePositions.positions[i] & ~(BitBoard)move.TargetSquare) > 0 ? (i + 1) | 8 : capturedPiece;
-                didCapture = ((whitePositions.positions[i] & ~(BitBoard)move.TargetSquare) > 0) || didCapture;
+                
 
             }
 
@@ -193,7 +226,7 @@ public class Position
         didCapture ? 0: lastState.HalfMoveClock + 1,
         lastState.FullMoveCount + 1,
         capturedPiece,
-        move.TargetSquare,
+        didCapture ? move.TargetSquare : -1,
         promote
         );
 

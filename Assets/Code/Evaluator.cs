@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Security.Cryptography.X509Certificates;
 using Unity.VisualScripting.Dependencies.Sqlite;
 using UnityEngine;
@@ -12,34 +13,39 @@ public static class Evaluator {
 
         float score = 0;
         int[] pieceEval = {0,100,330,300,500,900,20000};
+        BitBoard[] piecePositions = board.state.Peek().NextToMove == 8 ? board.whitePositions.positions:board.blackPositions.positions; 
 
-        for (int i = 0; i < 64; i++)
+        for (int i = 0; i < 6; i++)
         {
 
-            score += (board.whitePositions.allPositions &(BitBoard)i )> 0 ? pieceEval[board.PieceAt(i) & 7]: 0;
-            score -= (board.blackPositions.allPositions &(BitBoard)i )> 0 ? pieceEval[board.PieceAt(i) & 7]: 0;
-            int piece = board.PieceAt(i);
+            BitBoard copy = piecePositions[i];
+            while(copy > 0){
+                
+                switch (i)
+                {
+                    
+                    case 1:
+                    score += pawnValue(board, BitBoard.bitscan(copy),board.state.Peek().NextToMove);
+                    break;
+                    case 2:
+                    score +=bishopValue(board, BitBoard.bitscan(copy),board.state.Peek().NextToMove);
+                    break;
+                    case 3:
+                    score +=knightValue(board, BitBoard.bitscan(copy),board.state.Peek().NextToMove);
+                    break;
+                    case 4:
+                    score +=rookValue(board, BitBoard.bitscan(copy),board.state.Peek().NextToMove);
+                    break;
+                    case 5:
+                    score +=queenValue(board, BitBoard.bitscan(copy),board.state.Peek().NextToMove);
+                    break;
+                    case 6:
+                    score +=kingValue(board, BitBoard.bitscan(copy),board.state.Peek().NextToMove);
+                    break;
+                    
+                }
 
-            switch(piece & 7){
-
-                case 1:
-                score +=pawnValue(board,i, piece & 24);
-                break;
-                case 2:
-                score +=bishopValue(board,i, piece & 24);
-                break;
-                case 3:
-                score +=knightValue(board, i, piece & 24);
-                break;
-                case 4:
-                score +=rookValue(board,i, piece & 24);
-                break;
-                case 5:
-                score +=queenValue(board,i, piece & 24);
-                break;
-                case 6:
-                score +=kingValue(board, i, piece & 24);
-                break;
+                copy ^= copy & -copy;
 
             }
 
@@ -71,11 +77,13 @@ public static class Evaluator {
         if(!((alliedPawn & scan) > 0)){
 
             BitBoard enemyPawn = sideToMove == 8 ? board.blackPositions.pawn: board.whitePositions.pawn;
-            int filePos = square % 8;
+            int filePos = square & 7;
             scan |= scan << Math.Max(0, filePos-1) | scan << Math.Min(7, filePos+1); 
             score += (enemyPawn & scan) > 0? 20:0;
 
         }
+
+        Debug.Log(square + " score: " + score);
 
         return score;
     }
@@ -102,6 +110,8 @@ public static class Evaluator {
 
         //badBishop
 
+        Debug.Log(square + " score: " + score);
+
         return score;
     }
     private static float knightValue(Position board, int square, int sideToMove){
@@ -119,6 +129,8 @@ public static class Evaluator {
         score += sideToMove == 8 ? 3*(count-16):-3*(count-16);
 
         //outpost
+
+        Debug.Log(square + " score: " + score);
 
         return score;
 
@@ -139,6 +151,8 @@ public static class Evaluator {
 
         //king blocking pentalty
 
+        Debug.Log(square + " score: " + score);
+
         return score;
 
     }
@@ -150,6 +164,8 @@ public static class Evaluator {
         if(board.state.Peek().FullMoveCount < 10) score -= 20;
 
         //maybe don't evaluate mobility?
+
+        Debug.Log(square + " score: " + score);
 
         return score;
 
@@ -187,6 +203,8 @@ public static class Evaluator {
             danger ^= danger & -danger; 
 
         }
+
+        Debug.Log(square + " score: " + score);
 
         return score;
     }

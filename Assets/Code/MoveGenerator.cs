@@ -11,6 +11,7 @@ public class MoveGenerator
     private BitBoard[,] rookLookup;
     private BitBoard[,] bishopLookup;
     private BitBoard[] knightLookup;
+    private BitBoard[] kingLookup;
     private BitBoard rank2 = (BitBoard)(ulong)0xff00;
     private BitBoard rank7 = (BitBoard)0xff000000000000;
     private BitBoard whiteKingsideCastleBitboard = new(0x60);
@@ -23,10 +24,12 @@ public class MoveGenerator
         rookLookup = Position.generateLookupTable(true);
         bishopLookup = Position.generateLookupTable(false);
         knightLookup = new BitBoard[64];
+        kingLookup = new BitBoard[64];
 
         for (int i = 0; i < 64; i++)
         {
             knightLookup[i] = PiecePositions.knightAttack(i);
+            kingLookup[i] = PiecePositions.kingAttack(i);
         }
 
     }
@@ -35,6 +38,7 @@ public class MoveGenerator
 
         int piece = board.PieceAt(square);
         BitBoard attack = new();
+        PositionState currentState = board.state.Peek();
 
         if ((piece & 7) == 3)
         {
@@ -44,8 +48,8 @@ public class MoveGenerator
         else
         {
 
-            attack = (board.state.Peek().NextToMove == 8 ? board.blackPositions.allPositions : board.whitePositions.allPositions) & PiecePositions.pawnAttack(square, board.state.Peek().NextToMove);
-            bool isWhite = board.state.Peek().NextToMove == 8;
+            bool isWhite = currentState.NextToMove == 8;
+            attack = ((isWhite ? board.blackPositions.allPositions : board.whitePositions.allPositions) | (BitBoard)currentState.EnPassantTarget) & PiecePositions.pawnAttack(square, currentState.NextToMove);
             attack |= isWhite ? (BitBoard)square << 8 & ~(board.whitePositions.allPositions | board.blackPositions.allPositions) : (BitBoard)square >> 8 & ~(board.whitePositions.allPositions | board.blackPositions.allPositions);
 
             if ((rank2 & (BitBoard)square) > 0 && isWhite && attack > 0)
@@ -53,10 +57,10 @@ public class MoveGenerator
 
             else if ((rank7 & (BitBoard)square) > 0 && !isWhite && attack > 0)
                 attack |= (BitBoard)square >> 16 & ~(board.whitePositions.allPositions | board.blackPositions.allPositions);
-
+            
         }
 
-        attack &= board.state.Peek().NextToMove == 8 ? ~board.whitePositions.allPositions : ~board.blackPositions.allPositions;
+        attack &= currentState.NextToMove == 8 ? ~board.whitePositions.allPositions : ~board.blackPositions.allPositions;
 
         return createMoves(attack, square, piece);
 
@@ -64,7 +68,7 @@ public class MoveGenerator
     public List<Move> createKingMove(Position board, int square)
     {
 
-        BitBoard attack = PiecePositions.kingAttack(square);
+        BitBoard attack = kingLookup[square];
         PositionState state = board.state.Peek();
         attack &= ~(state.NextToMove == 8 ? board.whitePositions.allPositions : board.blackPositions.allPositions);
 
