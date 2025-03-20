@@ -51,7 +51,13 @@ public class Game : MonoBehaviour
     private void test(InputAction.CallbackContext context)
     {
        
-        Evaluator.EvaluateBoard(gameState);
+        //Evaluator.EvaluateBoard(gameState);
+
+        foreach (Move item in moveGenerator.generateMoves(gameState))
+        {
+            if((item.MovedPiece & 7 )== 1 && (item.TargetSquare ==  item.SourceSquare + 9|| item.TargetSquare == item.SourceSquare + 7)) 
+            Debug.Log("source: " + item.SourceSquare + " target: " + item.TargetSquare + " piece: " + item.MovedPiece);
+        }
 
     }
 

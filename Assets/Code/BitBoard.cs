@@ -101,8 +101,8 @@ public struct BitBoard
     public BitBoard NEshift(){return new BitBoard(_squares << 9);}
     public BitBoard NWshift(){return new BitBoard(_squares << 7);}
     public BitBoard Nshift(){return new BitBoard(_squares << 8);}
-    public BitBoard SEshift( ){return new BitBoard(_squares >> 9);}
-    public BitBoard SWshift( ){return new BitBoard(_squares >> 7);}
+    public BitBoard SEshift( ){return new BitBoard(_squares >> 7);}
+    public BitBoard SWshift( ){return new BitBoard(_squares >> 9);}
     public BitBoard Sshift( ){return new BitBoard(_squares >> 8);}
     public BitBoard Eshift( ){return new BitBoard(_squares >> 1);}
     public BitBoard Wshift( ){return new BitBoard(_squares << 1);}

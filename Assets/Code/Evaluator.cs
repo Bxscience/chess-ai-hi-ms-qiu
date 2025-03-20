@@ -13,43 +13,72 @@ public static class Evaluator {
 
         float score = 0;
         int[] pieceEval = {0,100,330,300,500,900,20000};
-        BitBoard[] piecePositions = board.state.Peek().NextToMove == 8 ? board.whitePositions.positions:board.blackPositions.positions; 
+        BitBoard[] piecePositions = board.whitePositions.positions.Concat(board.blackPositions.positions).ToArray(); 
 
-        for (int i = 0; i < 6; i++)
+        for (int i = 0; i < 64; i++)
         {
-
-            BitBoard copy = piecePositions[i];
-            while(copy > 0){
+            int piece = board.PieceAt(i);
+            switch (piece & 7)
+            {
                 
-                switch (i)
-                {
-                    
-                    case 1:
-                    score += pawnValue(board, BitBoard.bitscan(copy),board.state.Peek().NextToMove);
-                    break;
-                    case 2:
-                    score +=bishopValue(board, BitBoard.bitscan(copy),board.state.Peek().NextToMove);
-                    break;
-                    case 3:
-                    score +=knightValue(board, BitBoard.bitscan(copy),board.state.Peek().NextToMove);
-                    break;
-                    case 4:
-                    score +=rookValue(board, BitBoard.bitscan(copy),board.state.Peek().NextToMove);
-                    break;
-                    case 5:
-                    score +=queenValue(board, BitBoard.bitscan(copy),board.state.Peek().NextToMove);
-                    break;
-                    case 6:
-                    score +=kingValue(board, BitBoard.bitscan(copy),board.state.Peek().NextToMove);
-                    break;
-                    
-                }
-
-                copy ^= copy & -copy;
-
+                case 1:
+                score += pawnValue(board,i, piece & 24);
+                break;
+                case 2:
+                score +=bishopValue(board,i, piece & 24);
+                break;
+                case 3:
+                score +=knightValue(board,i, piece & 24);
+                break;
+                case 4:
+                score +=rookValue(board,i, piece & 24);
+                break;
+                case 5:
+                score +=queenValue(board,i, piece & 24);
+                break;
+                case 6:
+                score +=kingValue(board,i, piece & 24);
+                break;
+                
             }
 
         }
+
+        // for (int i = 0; i < 12; i++)
+        // {
+
+        //     BitBoard copy = piecePositions[i];
+        //     while(copy > 0){
+                
+        //         switch (i & 5)
+        //         {
+                    
+        //             case 0:
+        //             score += pawnValue(board, BitBoard.bitscan(copy), i > 5 ? 16 : 8);
+        //             break;
+        //             case 1:
+        //             score +=bishopValue(board, BitBoard.bitscan(copy),i > 5 ? 16 : 8);
+        //             break;
+        //             case 2:
+        //             score +=knightValue(board, BitBoard.bitscan(copy),i > 5 ? 16 : 8);
+        //             break;
+        //             case 3:
+        //             score +=rookValue(board, BitBoard.bitscan(copy),i > 5 ? 16 : 8);
+        //             break;
+        //             case 4:
+        //             score +=queenValue(board, BitBoard.bitscan(copy),i > 5 ? 16 : 8);
+        //             break;
+        //             case 5:
+        //             score +=kingValue(board, BitBoard.bitscan(copy),i > 5 ? 16 : 8);
+        //             break;
+                    
+        //         }
+
+        //         copy ^= copy & -copy;
+
+        //     }
+
+        // }
 
         return score;
 
@@ -83,7 +112,7 @@ public static class Evaluator {
 
         }
 
-        Debug.Log(square + " score: " + score);
+        //ug.Log(square + " score: " + score);
 
         return score;
     }
@@ -110,7 +139,7 @@ public static class Evaluator {
 
         //badBishop
 
-        Debug.Log(square + " score: " + score);
+        //ug.Log(square + " score: " + score);
 
         return score;
     }
@@ -130,7 +159,7 @@ public static class Evaluator {
 
         //outpost
 
-        Debug.Log(square + " score: " + score);
+        //ug.Log(square + " score: " + score);
 
         return score;
 
@@ -151,7 +180,7 @@ public static class Evaluator {
 
         //king blocking pentalty
 
-        Debug.Log(square + " score: " + score);
+        //ug.Log(square + " score: " + score);
 
         return score;
 
@@ -165,7 +194,7 @@ public static class Evaluator {
 
         //maybe don't evaluate mobility?
 
-        Debug.Log(square + " score: " + score);
+        //ug.Log(square + " score: " + score);
 
         return score;
 
@@ -204,7 +233,7 @@ public static class Evaluator {
 
         }
 
-        Debug.Log(square + " score: " + score);
+        //ug.Log(square + " score: " + score);
 
         return score;
     }
