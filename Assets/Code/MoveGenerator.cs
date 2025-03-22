@@ -81,21 +81,21 @@ public class MoveGenerator
 
         if (state.NextToMove == 8 &&
         (state.WhiteCastlingRights == CastlingFlags.Both || state.WhiteCastlingRights == CastlingFlags.QueenSide) &&
-        (board.whitePositions.allPositions | board.blackPositions.allPositions & whiteQueensideCastleBitboard) == 0)
+        ((board.whitePositions.allPositions | board.blackPositions.allPositions) & whiteQueensideCastleBitboard) == 0)
         {
             attack |= new BitBoard(2);
         }
 
         if (state.NextToMove == 16 &&
         (state.BlackCastlingRights == CastlingFlags.Both || state.BlackCastlingRights == CastlingFlags.KingSide) &&
-        (board.whitePositions.allPositions | board.blackPositions.allPositions & blackKingsideCastleBitboard) == 0)
+        ((board.whitePositions.allPositions | board.blackPositions.allPositions) & blackKingsideCastleBitboard) == 0)
         {
             attack |= new BitBoard(0x4000000000000000);
         }
 
         if (state.NextToMove == 16 &&
         (state.BlackCastlingRights == CastlingFlags.Both || state.BlackCastlingRights == CastlingFlags.QueenSide) &&
-        (board.whitePositions.allPositions | board.blackPositions.allPositions & blackQueensideCastleBitboard) == 0)
+        ((board.whitePositions.allPositions | board.blackPositions.allPositions) & blackQueensideCastleBitboard) == 0)
         {
             attack |= new BitBoard(0x200000000000000);
         }

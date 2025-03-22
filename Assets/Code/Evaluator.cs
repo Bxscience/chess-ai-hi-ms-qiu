@@ -18,6 +18,8 @@ public static class Evaluator {
         for (int i = 0; i < 64; i++)
         {
             int piece = board.PieceAt(i);
+            int pieceIndex = piece & 7-1;
+            int pieceColor = piece & 24;
             switch (piece & 7)
             {
                 
@@ -41,6 +43,7 @@ public static class Evaluator {
                 break;
                 
             }
+            score += pieceColor == 8 ? pieceEval[pieceIndex]:-pieceEval[pieceIndex];
 
         }
 

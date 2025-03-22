@@ -65,8 +65,8 @@ public class PiecePositions
 
         if (color == 8)
         {
-            returno |= file + 1 < 7 ? bitboardPiece.NEshift() : BitBoard.zero;
-            returno |= file - 1 > 0 ? bitboardPiece.NWshift() : BitBoard.zero;
+            returno |= file == 7 ? BitBoard.zero: bitboardPiece.NEshift();
+            returno |= file == 0 ? BitBoard.zero :bitboardPiece.NWshift();
         }
         else
         {
@@ -153,65 +153,6 @@ public class Position
         CastlingFlags whiteFlags = lastState.WhiteCastlingRights;
         CastlingFlags blackFlags = lastState.BlackCastlingRights;
 
-        if ((move.MovedPiece & 7) == 1)
-        {
-
-            if (lastState.NextToMove == 8)
-                enPassantTarget = move.TargetSquare == move.SourceSquare + 16 ? move.TargetSquare - 8 : -1;
-            else if (lastState.NextToMove == 16)
-                enPassantTarget = move.TargetSquare == move.SourceSquare - 16 ? move.TargetSquare + 8 : -1;
-
-            if ((whitePromote & (BitBoard)move.TargetSquare) > 0)
-            {
-                promote = 13;
-                whitePositions.positions[4] |= (BitBoard)move.TargetSquare;
-            }
-            if ((blackPromote & (BitBoard)move.TargetSquare) > 0)
-            {
-                promote = 21;
-                blackPositions.positions[4] |= (BitBoard)move.TargetSquare;
-            }
-
-            if (lastState.EnPassantTarget == move.TargetSquare)
-            {
-
-                didCapture = true;
-                capturedPiece = 1 | (lastState.NextToMove ^ 24);
-                if (lastState.NextToMove == 8)
-                    blackPositions.positions[0] ^= (BitBoard)(move.TargetSquare - 8);
-                else
-                    whitePositions.positions[0] ^= (BitBoard)(move.TargetSquare + 8);
-
-            }
-
-        }
-
-        if (move.MovedPiece == 12) whiteFlags = whiteFlags == CastlingFlags.Both ? CastlingFlags.QueenSide : CastlingFlags.None;
-        if (move.MovedPiece == 12) whiteFlags = whiteFlags == CastlingFlags.Both ? CastlingFlags.KingSide : CastlingFlags.None;
-        if (move.MovedPiece == 20) blackFlags = blackFlags == CastlingFlags.Both ? CastlingFlags.QueenSide : CastlingFlags.None;
-        if (move.MovedPiece == 20) blackFlags = blackFlags == CastlingFlags.Both ? CastlingFlags.KingSide : CastlingFlags.None;
-
-        if (move.MovedPiece == 14)
-        {
-            whiteFlags = CastlingFlags.None;
-            if (move.TargetSquare == 1)
-            {
-                whitePositions.positions[3] ^= new BitBoard(5);
-            }
-            if (move.TargetSquare == 6)
-                whitePositions.positions[3] ^= new BitBoard(160);
-        }
-        if (move.MovedPiece == 22)
-        {
-            blackFlags = CastlingFlags.None;
-            if (move.TargetSquare == 57)
-            {
-                blackPositions.positions[3] ^= new BitBoard(0x500000000000000);
-            }
-            if (move.TargetSquare == 62)
-                blackPositions.positions[3] ^= new BitBoard(0xa000000000000000);
-        }
-
         if (lastState.NextToMove == 8)
         {
 
@@ -244,6 +185,69 @@ public class Position
 
         }
 
+        if ((move.MovedPiece & 7) == 1)
+        {
+
+            if (lastState.NextToMove == 8)
+                enPassantTarget = move.TargetSquare == move.SourceSquare + 16 ? move.TargetSquare - 8 : -1;
+            else if (lastState.NextToMove == 16)
+                enPassantTarget = move.TargetSquare == move.SourceSquare - 16 ? move.TargetSquare + 8 : -1;
+
+            if ((whitePromote & (BitBoard)move.TargetSquare) > 0)
+            {
+                promote = 13;
+                whitePositions.positions[4] |= (BitBoard)move.TargetSquare;
+                whitePositions.positions[0] &= ~(BitBoard)move.TargetSquare;
+            }
+            if ((blackPromote & (BitBoard)move.TargetSquare) > 0)
+            {
+                promote = 21;
+                blackPositions.positions[4] |= (BitBoard)move.TargetSquare;
+                blackPositions.positions[0] &= ~(BitBoard)move.TargetSquare;
+            }
+
+            if (lastState.EnPassantTarget == move.TargetSquare)
+            {
+
+                didCapture = true;
+                capturedPiece = 1 | (lastState.NextToMove ^ 24);
+                if (lastState.NextToMove == 8)
+                    blackPositions.positions[0] ^= (BitBoard)(move.TargetSquare - 8);
+                else
+                    whitePositions.positions[0] ^= (BitBoard)(move.TargetSquare + 8);
+
+            }
+
+        }
+
+        if (move.MovedPiece == 12) whiteFlags = whiteFlags == CastlingFlags.Both ? CastlingFlags.QueenSide : CastlingFlags.None;
+        if (move.MovedPiece == 12) whiteFlags = whiteFlags == CastlingFlags.Both ? CastlingFlags.KingSide : CastlingFlags.None;
+        if (move.MovedPiece == 20) blackFlags = blackFlags == CastlingFlags.Both ? CastlingFlags.QueenSide : CastlingFlags.None;
+        if (move.MovedPiece == 20) blackFlags = blackFlags == CastlingFlags.Both ? CastlingFlags.KingSide : CastlingFlags.None;
+
+        if (move.MovedPiece == 14)
+        {
+
+            if (move.TargetSquare == 1 && (whiteFlags == CastlingFlags.QueenSide || whiteFlags == CastlingFlags.Both))
+                whitePositions.positions[3] ^= new BitBoard(5);
+            
+            else if (move.TargetSquare == 6 && (whiteFlags == CastlingFlags.KingSide || whiteFlags == CastlingFlags.Both))
+                whitePositions.positions[3] ^= new BitBoard(160);
+
+            whiteFlags = CastlingFlags.None;
+
+        }
+        if (move.MovedPiece == 22)
+        {
+            blackFlags = CastlingFlags.None;
+            if (move.TargetSquare == 57 &&(blackFlags == CastlingFlags.QueenSide || blackFlags == CastlingFlags.Both))
+            {
+                blackPositions.positions[3] ^= new BitBoard(0x500000000000000);
+            }
+            if (move.TargetSquare == 62 && blackFlags == CastlingFlags.KingSide || blackFlags == CastlingFlags.Both)
+                blackPositions.positions[3] ^= new BitBoard(0xa000000000000000);
+        }
+
         PositionState newState = new(
         move,
         whiteFlags,
@@ -272,7 +276,13 @@ public class Position
             whitePositions.positions[(lastState.AppliedMove.MovedPiece & 7) - 1] ^= fromTo;
 
             if (state.Peek().EnPassantTarget == lastState.AppliedMove.TargetSquare && lastState.AppliedMove.MovedPiece == 9)
-                blackPositions.positions[0] |= (BitBoard)(lastState.AppliedMove.TargetSquare - 8);
+                blackPositions.positions[0] ^= (BitBoard)(lastState.AppliedMove.TargetSquare - 8);
+
+            else if(lastState.AppliedMove.MovedPiece == 9 && ((BitBoard)lastState.AppliedMove.TargetSquare & new BitBoard(0xff00000000000000)) > 0){
+                whitePositions.positions[4] &= ~(BitBoard)lastState.AppliedMove.TargetSquare;
+                whitePositions.positions[0] |= (BitBoard)lastState.AppliedMove.SourceSquare;
+                whitePositions.positions[0] &= ~(BitBoard)lastState.AppliedMove.TargetSquare;
+            }
 
             else if (lastState.AppliedMove.MovedPiece == 14)
             {
@@ -284,7 +294,7 @@ public class Position
                     whitePositions.positions[3] ^= new BitBoard(160);
             }
 
-            else if (lastState.CapturedPieceType != -1)
+            if (lastState.CapturedPieceType != -1)
                 blackPositions.positions[(int)((lastState.CapturedPieceType & 7) - 1)] |= (BitBoard)lastState.AppliedMove.TargetSquare;
 
         }
@@ -294,8 +304,14 @@ public class Position
 
             blackPositions.positions[(lastState.AppliedMove.MovedPiece & 7) - 1] ^= fromTo;
 
-            if (state.Peek().EnPassantTarget != lastState.AppliedMove.TargetSquare && lastState.AppliedMove.MovedPiece == 9)
-                whitePositions.positions[0] |= (BitBoard)(lastState.AppliedMove.TargetSquare + 8);
+            if (state.Peek().EnPassantTarget == lastState.AppliedMove.TargetSquare && lastState.AppliedMove.MovedPiece == 17)
+                whitePositions.positions[0] ^= (BitBoard)(lastState.AppliedMove.TargetSquare + 8);
+
+            else if(lastState.AppliedMove.MovedPiece == 17 && ((BitBoard)lastState.AppliedMove.TargetSquare & new BitBoard(0xff)) > 0){
+                blackPositions.positions[4] &= ~(BitBoard)lastState.AppliedMove.TargetSquare;
+                blackPositions.positions[0] |= (BitBoard)lastState.AppliedMove.SourceSquare;
+                blackPositions.positions[0] &= ~(BitBoard)lastState.AppliedMove.TargetSquare;
+            }
 
             else if (lastState.AppliedMove.MovedPiece == 22)
             {
@@ -305,7 +321,7 @@ public class Position
                 blackPositions.positions[3] ^= new BitBoard(0xa000000000000000);
             }
 
-            else if (lastState.CapturedPieceType != -1)
+            if (lastState.CapturedPieceType != -1)
                 whitePositions.positions[(int)((lastState.CapturedPieceType & 7) - 1)] |= (BitBoard)lastState.AppliedMove.TargetSquare;
 
         }

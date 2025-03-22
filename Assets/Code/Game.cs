@@ -1,3 +1,9 @@
+//TODO
+/*
+fix the undo move thing
+add alpha beta pruning
+do the memory allocation state thing maybe
+*/
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -13,6 +19,8 @@ public class Game : MonoBehaviour
 {
     public GameObject tile;
     public GameObject[] pieces;
+    public int depth;
+    private PositionState[] states;
     private Position gameState;
     private const string startFEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
     private GameObject[] gameObjectBoard = new GameObject[64];
@@ -52,12 +60,14 @@ public class Game : MonoBehaviour
     {
        
         //Evaluator.EvaluateBoard(gameState);
+        Debug.Log(Evaluator.EvaluateBoard(gameState));
 
-        foreach (Move item in moveGenerator.generateMoves(gameState))
-        {
-            if((item.MovedPiece & 7 )== 1 && (item.TargetSquare ==  item.SourceSquare + 9|| item.TargetSquare == item.SourceSquare + 7)) 
-            Debug.Log("source: " + item.SourceSquare + " target: " + item.TargetSquare + " piece: " + item.MovedPiece);
-        }
+        // foreach (Move item in moveGenerator.generateMoves(gameState))
+        // {
+        //     //if((item.MovedPiece & 7 )== 1 && (item.TargetSquare ==  item.SourceSquare + 9|| item.TargetSquare == item.SourceSquare + 7)) 
+            
+        //     //Debug.Log("source: " + item.SourceSquare + " target: " + item.TargetSquare + " piece: " + item.MovedPiece);
+        // }
 
     }
 
@@ -176,9 +186,9 @@ public class Game : MonoBehaviour
 
                     }
                     
-                    // var (x,y) = botMove(2, false, gameState, Mathf.Infinity, Mathf.NegativeInfinity);
-                    // gameState.updateBoardWithMove(x);
-                    // updateBoardWithMove(x);
+                    var (x,y) = botMove(2, false, gameState, Mathf.Infinity, Mathf.NegativeInfinity);
+                    gameState.updateBoardWithMove(x);
+                    updateBoardWithMove(x);
 
                 }
 
