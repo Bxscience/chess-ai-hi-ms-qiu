@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography.X509Certificates;
 using Unity.VisualScripting.Dependencies.Sqlite;
+using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 using UnityEngine.Animations;
 using UnityEngine.SocialPlatforms.Impl;
@@ -43,6 +44,7 @@ public static class Evaluator {
                 break;
                 
             }
+
             score += pieceColor == 8 ? pieceEval[pieceIndex]:-pieceEval[pieceIndex];
 
         }
@@ -170,6 +172,7 @@ public static class Evaluator {
     private static float rookValue(Position board, int square, int sideToMove){
 
         float score = 0;
+        PositionState state = board.state.Peek();
 
         //value gained as pawns dissappear
 
@@ -182,6 +185,15 @@ public static class Evaluator {
         score += sideToMove == 8 ? -2*(count-16):2*(count-16);
 
         //king blocking pentalty
+        
+        if(square == 0 && (state.WhiteCastlingRights == CastlingFlags.Both || state.WhiteCastlingRights == CastlingFlags.QueenSide)) 
+            score -= 20;
+        else if(square == 7 && (state.WhiteCastlingRights == CastlingFlags.Both || state.WhiteCastlingRights == CastlingFlags.KingSide))
+            score -= 20;
+        else if(square == 56 && (state.WhiteCastlingRights == CastlingFlags.Both || state.BlackCastlingRights == CastlingFlags.QueenSide))
+            score += 20;
+        else if(square == 63 && (state.WhiteCastlingRights == CastlingFlags.Both || state.BlackCastlingRights == CastlingFlags.KingSide))
+            score += 20;
 
         //ug.Log(square + " score: " + score);
 

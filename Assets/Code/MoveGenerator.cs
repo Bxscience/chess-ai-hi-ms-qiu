@@ -12,7 +12,7 @@ public class MoveGenerator
     private BitBoard[,] bishopLookup;
     private BitBoard[] knightLookup;
     private BitBoard[] kingLookup;
-    private BitBoard rank2 = (BitBoard)(ulong)0xff00;
+    private BitBoard rank2 = new BitBoard(0xff00);
     private BitBoard rank7 = (BitBoard)0xff000000000000;
     private BitBoard whiteKingsideCastleBitboard = new(0x60);
     private BitBoard whiteQueensideCastleBitboard = new(0xe);

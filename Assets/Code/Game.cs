@@ -186,7 +186,7 @@ public class Game : MonoBehaviour
 
                     }
                     
-                    var (x,y) = botMove(2, false, gameState, Mathf.Infinity, Mathf.NegativeInfinity);
+                    var (x,y) = botMove(4, false, gameState, Mathf.NegativeInfinity, Mathf.Infinity);
                     gameState.updateBoardWithMove(x);
                     updateBoardWithMove(x);
 
@@ -274,8 +274,13 @@ public class Game : MonoBehaviour
                     score = y;
                 }
 
+                alpha = Math.Max(alpha, score);
+                
                 gameState.undoLastMove();
                 i++;
+
+                if (beta <= alpha)
+                    break;
 
             }
 
@@ -299,8 +304,14 @@ public class Game : MonoBehaviour
                     score = y;
                 }
 
+                beta = Math.Min(beta, score);
+
                 gameState.undoLastMove();
                 i++;
+
+                if(beta <= alpha)
+                    break;
+
             }
             return (bestMove,score);
 
