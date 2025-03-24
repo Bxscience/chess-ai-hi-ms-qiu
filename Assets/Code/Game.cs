@@ -1,8 +1,9 @@
 //TODO
 /*
-fix the undo move thing
-add alpha beta pruning
+null pruning maybe
 do the memory allocation state thing maybe
+piece square tables
+
 */
 using System;
 using System.Collections;
@@ -10,6 +11,7 @@ using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using Unity.VisualScripting;
 using UnityEditor;
+using UnityEditor.ShaderKeywordFilter;
 using UnityEngine;
 using UnityEngine.Assertions.Must;
 using UnityEngine.InputSystem;
@@ -31,10 +33,10 @@ public class Game : MonoBehaviour
     private Color lastTileColor;
     private PlayerInput playerInput;
     private MoveGenerator moveGenerator = new();
+    private TranspositionTable transpositionTable = new();
     private List<Move> moves;
-    private BitBoard whitePromoteSquares = (BitBoard)0xff00000000000000;
-    private BitBoard blackPromoteSquares = new BitBoard(0xff);
-    private int count = 0;
+    private Move optimalMove;
+    private float optimalScore = float.MaxValue;
     private readonly Dictionary<string, short> posLookup = new Dictionary<string, short> { { "A", 1 }, { "B", 2 }, { "C", 3 }, { "D", 4 }, { "E", 5 }, { "F", 6 }, { "G", 7 }, { "H", 8 } };
     void Awake()
     {
@@ -58,14 +60,14 @@ public class Game : MonoBehaviour
 
     private void test(InputAction.CallbackContext context)
     {
-       
+
         //Evaluator.EvaluateBoard(gameState);
-        Debug.Log(Evaluator.EvaluateBoard(gameState));
+        Debug.Log(Evaluator.EvaluateBoard(gameState, moveGenerator));
 
         // foreach (Move item in moveGenerator.generateMoves(gameState))
         // {
         //     //if((item.MovedPiece & 7 )== 1 && (item.TargetSquare ==  item.SourceSquare + 9|| item.TargetSquare == item.SourceSquare + 7)) 
-            
+
         //     //Debug.Log("source: " + item.SourceSquare + " target: " + item.TargetSquare + " piece: " + item.MovedPiece);
         // }
 
@@ -92,6 +94,7 @@ public class Game : MonoBehaviour
         gameState = new Position(white, black);
         gameState.state.Push(startState);
         moveGenerator.initializeLookup();
+        transpositionTable.init();
         initalizeBoard();
 
     }
@@ -110,7 +113,7 @@ public class Game : MonoBehaviour
         int enPassantTarget = enPassantTargetParse(FEN[3]);
         int halfMoveClock = halfMoveClockParse(FEN[4]);
         int fullMoveCount = fullMoveCountParse(FEN[5]);
-        return new(new Move(), castlings[0], castlings[1], side, enPassantTarget, halfMoveClock, fullMoveCount, -1, -1, -1);
+        return new(null, castlings[0], castlings[1], side, enPassantTarget, halfMoveClock, fullMoveCount, -1, -1, -1);
 
     }
     //For initalizing game objects
@@ -185,10 +188,12 @@ public class Game : MonoBehaviour
                         tiles[move.TargetSquare].GetComponent<Renderer>().material.color = (move.TargetSquare % 8 + move.TargetSquare / 8) % 2 == 0 ? Color.white : Color.black;
 
                     }
-                    
-                    var (x,y) = botMove(4, false, gameState, Mathf.NegativeInfinity, Mathf.Infinity);
-                    gameState.updateBoardWithMove(x);
-                    updateBoardWithMove(x);
+
+
+                    //Bot's Move
+                    Move optimalMove = findBotMove(3, false);
+                    gameState.updateBoardWithMove(optimalMove);
+                    updateBoardWithMove(optimalMove);
 
                 }
 
@@ -251,72 +256,108 @@ public class Game : MonoBehaviour
 
     }
     //Bot search
-    private (Move, float) botMove(int depth, bool isMax, Position gameState, float alpha, float beta){
 
-        if(depth <= 0) return (new(),Evaluator.EvaluateBoard(gameState));
+    private Move findBotMove(int depth, bool isMax){
+        
+        Move returno = null;
+        float bestScore = isMax? float.NegativeInfinity:float.PositiveInfinity;
 
-        float score = isMax? -Mathf.Infinity:Mathf.Infinity;
+        foreach (Move move in moveGenerator.generateMoves(gameState))
+        {
+            gameState.updateBoardWithMove(move);
+            float evalScore = botSearch(depth-1, !isMax, gameState, float.NegativeInfinity, float.PositiveInfinity);
+            if((evalScore > bestScore && isMax) || (evalScore < bestScore && !isMax)){
+                bestScore = evalScore;
+                returno = move;
+            }
+            gameState.undoLastMove();
+        }
 
-        if(isMax){
+        if(returno != null) return returno;
+        throw new IndexOutOfRangeException();
+
+    }
+    private float botSearch(int depth, bool isMax, Position gameState, float alpha, float beta)
+    {
+
+        if (depth <= 0) return Evaluator.EvaluateBoard(gameState, moveGenerator);
+
+        float score = isMax ? -Mathf.Infinity : Mathf.Infinity;
+        int key = transpositionTable.zobristKey(gameState);
+
+        // if (transpositionTable.hasKey(key))
+        //     return transpositionTable.table[key];
+
+        //Move localBestMove = null;
+
+        if (isMax)
+        {
 
             List<Move> moves = moveGenerator.generateMoves(gameState);
-            Move bestMove = new();
-            int i = 0;
 
             foreach (Move move in moves)
             {
 
                 gameState.updateBoardWithMove(move);
-                var(x, y) = botMove(depth - 1, !isMax, gameState, alpha, beta);
+                float y = botSearch(depth - 1, !isMax, gameState, alpha, beta);
 
-                if(score < y){
-                    bestMove = move;
+                if (score < y)
+                {
                     score = y;
                 }
 
                 alpha = Math.Max(alpha, score);
-                
+
+                transpositionTable.addEntery(key, score);
+
                 gameState.undoLastMove();
-                i++;
 
                 if (beta <= alpha)
                     break;
 
             }
 
-            return (bestMove,score);
+            return score;
 
         }
 
-        else{
+        else
+        {
 
             List<Move> moves = moveGenerator.generateMoves(gameState);
-            Move bestMove = new();
-            int i = 0;
 
             foreach (Move move in moves)
             {
                 gameState.updateBoardWithMove(move);
-                var(x, y) = botMove(depth - 1, !isMax, gameState, alpha, beta);
+                float y = botSearch(depth - 1, !isMax, gameState, alpha, beta);
 
-                if(score > y){
-                    bestMove = move;
+                if (score > y)
+                {
                     score = y;
                 }
 
                 beta = Math.Min(beta, score);
 
-                gameState.undoLastMove();
-                i++;
+                transpositionTable.addEntery(key, score);
 
-                if(beta <= alpha)
+                gameState.undoLastMove();
+
+                if (beta <= alpha)
                     break;
 
             }
-            return (bestMove,score);
+
+            return score;
 
         }
 
+    }
+
+    private void orderMoves(List<Move> moves){
+        foreach (Move move in moves)
+        {
+            
+        }
     }
 
     //Helper functions
@@ -333,9 +374,9 @@ public class Game : MonoBehaviour
                 int piece = gameState.PieceAt(index);
                 board[index] = piece;
 
-                if( gameObjectBoard[index] != null) Destroy(gameObjectBoard[index]);
+                if (gameObjectBoard[index] != null) Destroy(gameObjectBoard[index]);
 
-                if (piece != 0 )
+                if (piece != 0)
                 {
 
                     gameObjectBoard[index] = Instantiate(pieces[piece & 7], new Vector3(j, 0, i), Quaternion.identity);

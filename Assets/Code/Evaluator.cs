@@ -10,14 +10,15 @@ using UnityEngine.SocialPlatforms.Impl;
 
 public static class Evaluator {
     // Evaluate board from White's perspective: positive is good for White, negative is good for Black.
-    public static float EvaluateBoard(Position board) {
+    public static float EvaluateBoard(Position board, MoveGenerator moveGenerator) {
 
         float score = 0;
         int[] pieceEval = {0,100,330,300,500,900,20000};
-        BitBoard[] piecePositions = board.whitePositions.positions.Concat(board.blackPositions.positions).ToArray(); 
+        //BitBoard[] piecePositions = board.whitePositions.positions.Concat(board.blackPositions.positions).ToArray(); 
 
         for (int i = 0; i < 64; i++)
         {
+            //BitBoard[] attackDefendMap = moveGenerator.getAttackDefendMap(board);
             int piece = board.PieceAt(i);
             int pieceIndex = piece & 7-1;
             int pieceColor = piece & 24;
@@ -40,12 +41,13 @@ public static class Evaluator {
                 score +=queenValue(board,i, piece & 24);
                 break;
                 case 6:
-                score +=kingValue(board,i, piece & 24);
+                score +=kingValue(board,i, piece & 24, moveGenerator);
                 break;
                 
             }
 
             score += pieceColor == 8 ? pieceEval[pieceIndex]:-pieceEval[pieceIndex];
+            if(piece != 0)score += mobilityValue(board, i, piece, moveGenerator);
 
         }
 
@@ -88,6 +90,42 @@ public static class Evaluator {
         return score;
 
     }
+
+    private static float mobilityValue(Position board, int square, int piece, MoveGenerator moveGenerator){
+
+        float score = 0;
+        BitBoard attack = moveGenerator.createPieceAttackBitBoard(board, square, piece, board.state.Peek().NextToMove);
+        BitBoard centeral = new(0x3c3c3c3c3c3c00);
+        int sideMulti = (piece & 24) == 8 ? 1:-1;
+
+        while(attack > 0){
+
+            if((centeral & (BitBoard)BitBoard.bitscan(attack)) > 0) 
+                score += 5 * sideMulti;
+            score += sideMulti * 5;
+            attack ^= attack & -attack;
+
+        }
+
+        return score;
+
+    }
+
+    private static float xRayAttack(Position board, int square, bool isRook, MoveGenerator moveGenerator){
+
+        float score = 0;
+
+        if(isRook){
+            PiecePositions.rookAttack(square);
+        }
+
+        return score;
+
+    }
+    
+    // private static float connectivity(Position board, int square, int sideToMove){
+
+    // }
     private static float pawnValue(Position board, int square, int sideToMove){
         float score = 0;
 
@@ -214,7 +252,7 @@ public static class Evaluator {
         return score;
 
     }
-    private static float kingValue(Position board, int square, int sideToMove){
+    private static float kingValue(Position board, int square, int sideToMove, MoveGenerator moveGenerator){
 
         float score = 0;
 
@@ -234,17 +272,13 @@ public static class Evaluator {
         
         //phantom mobility
 
-        BitBoard attack = PiecePositions.bishopAttack(square) | PiecePositions.rookAttack(square);
-        BitBoard enemy = sideToMove == 8 ? board.blackPositions.allPositions:board.whitePositions.allPositions;
-        BitBoard danger = attack & enemy;
+        BitBoard attack = moveGenerator.createPieceAttackBitBoard(board, square, 5 | sideToMove,sideToMove);
+        int sideMulti = sideToMove == 8 ? -1:1;
 
-        while(danger > 0){
+        while(attack > 0){
 
-            if(board.PieceAt(BitBoard.bitscan(danger)) == (2 | (sideToMove ^ 24)) ||
-            board.PieceAt(BitBoard.bitscan(danger)) == (4 | (sideToMove ^ 24)) ||
-            board.PieceAt(BitBoard.bitscan(danger)) == (5 | (sideToMove ^ 24))) 
-                score += sideToMove == 8 ? -10:10;
-            danger ^= danger & -danger; 
+            score += 5 * sideMulti;
+            attack ^= attack & -attack; 
 
         }
 
