@@ -37,6 +37,7 @@ public class Game : MonoBehaviour
     private TranspositionTable transpositionTable = new();
     private BitBoard whitePromoteRow = new(0xff00000000000000);
     private BitBoard blackPromoteRow = new(0xff);
+    private Move[] playerMoves;
     private readonly Dictionary<string, short> posLookup = new Dictionary<string, short> { { "A", 1 }, { "B", 2 }, { "C", 3 }, { "D", 4 }, { "E", 5 }, { "F", 6 }, { "G", 7 }, { "H", 8 } };
     void Awake()
     {
@@ -62,8 +63,13 @@ public class Game : MonoBehaviour
     {
 
         Span<int> ints = stackalloc int[5];
-        ints[0] = 3;
-        ints[1] = 4;
+        ints[3] = 10;
+        ints[1] = 10;
+        ints[2] = 10;
+
+        int[] newints = ints.Slice(1,4).ToArray();
+
+        Debug.Log(newints);
 
         //Evaluator.EvaluateBoard(gameState);
         // Debug.Log(Evaluator.EvaluateBoard(gameState, moveGenerator));
@@ -166,7 +172,6 @@ public class Game : MonoBehaviour
             if (Physics.Raycast(ray, out RaycastHit hit2, 10000, 1 << 6))
             {
 
-                Span<Move> playerMoves = stackalloc Move[32];
                 bool isLegal = false;
                 int selectedTileIndex = (int)(selectedTile.transform.position.x + selectedTile.transform.position.z * 8);
                 int toTileIndex = (int)(hit2.transform.position.x + hit2.transform.position.z * 8);
@@ -196,9 +201,9 @@ public class Game : MonoBehaviour
 
 
                     // Bot's Move
-                    // Move optimalMove = findBotMove(3, false);
-                    // gameState.updateBoardWithMove(optimalMove);
-                    // updateBoardWithMove(optimalMove);
+                    Move optimalMove = findBotMove(3, false);
+                    gameState.updateBoardWithMove(optimalMove);
+                    updateBoardWithMove(optimalMove);
 
                 }
 
@@ -254,7 +259,10 @@ public class Game : MonoBehaviour
 
             }
 
-            foreach (Move move in moves)
+            playerMoves = moves.Slice(0,count).ToArray();
+            Debug.Log("hi");
+
+            foreach (Move move in playerMoves)
             {
                 tiles[move.TargetSquare].GetComponent<Renderer>().material.color = Color.yellow;
             }
@@ -270,7 +278,8 @@ public class Game : MonoBehaviour
         Move returno = new();
         float bestScore = isMax ? float.NegativeInfinity : float.PositiveInfinity;
         Span<Move> moves = stackalloc Move[218];
-        moveGenerator.generateMoves(gameState,ref moves);
+        int count = 0;
+        moveGenerator.generateMoves(gameState,ref moves, ref count);
 
         foreach (Move move in moves)
         {
@@ -304,7 +313,9 @@ public class Game : MonoBehaviour
         {
 
             Span<Move> moves = stackalloc Move[218];
-            moveGenerator.generateMoves(gameState, ref moves);
+            int count = 0;
+            moveGenerator.generateMoves(gameState, ref moves, ref count);
+            orderMoves(ref moves, count);
 
             foreach (Move move in moves)
             {
@@ -336,7 +347,9 @@ public class Game : MonoBehaviour
         {
 
             Span<Move> moves = stackalloc Move[218];
-            moveGenerator.generateMoves(gameState, ref moves);
+            int count = 0;
+            moveGenerator.generateMoves(gameState, ref moves, ref count);
+            orderMoves(ref moves, count);
 
             foreach (Move move in moves)
             {
@@ -365,10 +378,10 @@ public class Game : MonoBehaviour
 
     }
 
-    private void orderMoves(ref Stack<Move> moves, float alpha, float beta)
+    private void orderMoves(ref Span<Move> moves, int count)
     {
         moveGenerator.updateAttackBitboard(gameState, gameState.state.Peek().NextToMove ^ 24);
-        float[] moveScores = new float[218]; 
+        float[] moveScores = new float[count]; 
         foreach (Move move in moves)
         {
 
@@ -398,8 +411,10 @@ public class Game : MonoBehaviour
             if (((BitBoard)move.TargetSquare & enemyPawnBitboard) > 0)
                 approxScore -= Evaluator.pieceValue(move.MovedPiece) * sideMulti;
 
-
         }
+        
+        Quicksort(ref moves, moveScores,0,moves.Length-1);
+
     }
 
     //Helper functions
@@ -456,19 +471,19 @@ public class Game : MonoBehaviour
 
     }
 
-    public static void Quicksort(System.Span<Move> values, int[] scores, int low, int high)
+    public static void Quicksort(ref Span<Move> values, float[] scores, int low, int high)
     {
         if (low < high)
         {
-            int pivotIndex = Partition(values, scores, low, high);
-            Quicksort(values, scores, low, pivotIndex - 1);
-            Quicksort(values, scores, pivotIndex + 1, high);
+            int pivotIndex = Partition(ref values, scores, low, high);
+            Quicksort(ref values, scores, low, pivotIndex - 1);
+            Quicksort(ref values, scores, pivotIndex + 1, high);
         }
     }
 
-    static int Partition(System.Span<Move> values, int[] scores, int low, int high)
+    static int Partition(ref Span<Move> values, float[] scores, int low, int high)
     {
-        int pivotScore = scores[high];
+        float pivotScore = scores[high];
         int i = low - 1;
 
         for (int j = low; j <= high - 1; j++)

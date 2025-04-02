@@ -21,12 +21,11 @@ public class MoveGenerator
     private BitBoard blackKingsideCastleBitboard = new(0x6000000000000000);
     private BitBoard blackQueensideCastleBitboard = new(0xe00000000000000);
 
-    public void generateMoves(Position board, ref Span<Move> moves)
+    public void generateMoves(Position board, ref Span<Move> moves, ref int count)
     {
 
         BitBoard[] allPieces = board.state.Peek().NextToMove == 8 ? board.whitePositions.positions : board.blackPositions.positions;
         inCheck = false;
-        int count = 0;
 
         for (int i = 0; i < 6; i++)
         {
@@ -54,6 +53,8 @@ public class MoveGenerator
             }
 
         }
+
+        moves = moves.Slice(0, count);
 
     }
     public void initializeLookup()
@@ -336,9 +337,6 @@ public class MoveGenerator
             if ((attackMap & (BitBoard)i) > 0) {
                 moves[count] = new Move(startSquare, i, piece);
                 count++;
-                if(i == 0){
-                    Debug.WriteLine("HELP ME");
-                }
             }
 
         }
