@@ -1,24 +1,61 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
-using Unity.VisualScripting;
-using UnityEngine;
-using UnityEngine.PlayerLoop;
-using UnityEngine.Rendering;
-using UnityEngine.UIElements;
 
 public class MoveGenerator
 {
+    public BitBoard whiteAttackBitboard;
+    public BitBoard blackAttackBitboard;
+    public BitBoard[] totalWhiteAttackBitboards;
+    public BitBoard[] totalBlackAttackBitboards;
     private BitBoard[,] rookLookup;
     private BitBoard[,] bishopLookup;
     private BitBoard[] knightLookup;
     private BitBoard[] kingLookup;
     private BitBoard rank2 = new BitBoard(0xff00);
     private BitBoard rank7 = (BitBoard)0xff000000000000;
+    private bool inCheck = false;
     private BitBoard whiteKingsideCastleBitboard = new(0x60);
     private BitBoard whiteQueensideCastleBitboard = new(0xe);
     private BitBoard blackKingsideCastleBitboard = new(0x6000000000000000);
     private BitBoard blackQueensideCastleBitboard = new(0xe00000000000000);
+
+    public void generateMoves(Position board, ref Span<Move> moves)
+    {
+
+        BitBoard[] allPieces = board.state.Peek().NextToMove == 8 ? board.whitePositions.positions : board.blackPositions.positions;
+        inCheck = false;
+        int count = 0;
+
+        for (int i = 0; i < 6; i++)
+        {
+
+            BitBoard pieces = allPieces[i];
+            while (pieces > 0)
+            {
+                
+                int piecePosition = BitBoard.bitscan(pieces);
+
+                switch (i)
+                {
+
+                    case 0: createJumpingMove(board, piecePosition, ref moves, ref count); break;
+                    case 1: createSlidingMove(board, piecePosition, ref moves, ref count); break;
+                    case 2: createJumpingMove(board, piecePosition, ref moves, ref count); break;
+                    case 3: createSlidingMove(board, piecePosition, ref moves, ref count); break;
+                    case 4: createSlidingMove(board, piecePosition, ref moves, ref count); break;
+                    case 5: createKingMove(board, piecePosition, ref moves, ref count); break;
+
+                }
+
+                pieces ^= pieces & -pieces;
+
+            }
+
+        }
+
+    }
     public void initializeLookup()
     {
 
@@ -26,6 +63,10 @@ public class MoveGenerator
         bishopLookup = Position.generateLookupTable(false);
         knightLookup = new BitBoard[64];
         kingLookup = new BitBoard[64];
+        whiteAttackBitboard = new();
+        blackAttackBitboard = new();
+        totalBlackAttackBitboards = new BitBoard[6];
+        totalWhiteAttackBitboards = new BitBoard[6];
 
         for (int i = 0; i < 64; i++)
         {
@@ -34,7 +75,7 @@ public class MoveGenerator
         }
 
     }
-    public List<Move> createJumpingMove(Position board, int square)
+    public void createJumpingMove(Position board, int square, ref Span<Move> moves, ref int count)
     {
 
         int piece = board.PieceAt(square);
@@ -63,10 +104,10 @@ public class MoveGenerator
 
         attack &= currentState.NextToMove == 8 ? ~board.whitePositions.allPositions : ~board.blackPositions.allPositions;
 
-        return createMoves(attack, square, piece);
+        createMoves(attack, square, piece, ref moves, ref count);
 
     }
-    public List<Move> createKingMove(Position board, int square)
+    public void createKingMove(Position board, int square, ref Span<Move> moves, ref int count)
     {
 
         BitBoard attack = kingLookup[square];
@@ -101,12 +142,17 @@ public class MoveGenerator
             attack |= new BitBoard(0x200000000000000);
         }
 
-        attack &= ~attackBitboard(board, state.NextToMove ^ 24);
+        updateAttackBitboard(board, state.NextToMove ^ 24);
+        BitBoard enemyAttackBitboard = state.NextToMove == 8 ? blackAttackBitboard : whiteAttackBitboard;
+        attack &= ~enemyAttackBitboard;
 
-        return createMoves(attack, square, 6 | state.NextToMove);
+        if(((BitBoard)square & enemyAttackBitboard) > 0)
+            inCheck = true;
+
+        createMoves(attack, square, 6 | state.NextToMove ,ref moves, ref count);
 
     }
-    public List<Move> createSlidingMove(Position board, int square)
+    public void createSlidingMove(Position board, int square, ref Span<Move> moves, ref int count)
     {
 
         BitBoard D = (BitBoard)0xff818181818181ff;
@@ -139,7 +185,7 @@ public class MoveGenerator
         attack = (piece & 7) == 4 ? rookLookup[square, ((ulong)(attack & allPieces & ~endPos[square]) * PrecomputedMagics.RookMagics[square]) >> PrecomputedMagics.RookShifts[square]] : attack;
         attack &= ~(playerToMove == 8 ? board.whitePositions.allPositions : board.blackPositions.allPositions);
 
-        return createMoves(attack, square, piece);
+        createMoves(attack, square, piece, ref moves, ref count);
 
     }
     public BitBoard createPieceAttackBitBoard(Position board, int square, int piece, int playerToMove)
@@ -206,63 +252,45 @@ public class MoveGenerator
         throw new IndexOutOfRangeException();
 
     }
-    public BitBoard attackBitboard(Position board, int side){
-        
-        BitBoard[] bitBoards = side == 8? board.whitePositions.positions:board.blackPositions.positions ;
+    public void updateAttackBitboard(Position board, int side){
+
+        bool isWhite = side == 8;
+        BitBoard[] bitBoards = isWhite? board.whitePositions.positions:board.blackPositions.positions ;
         BitBoard returno = new();
 
         for (int i = 0; i < 6; i++)
         {
             BitBoard copy = bitBoards[i];
             while(copy > 0){
-
-                if (i == 0)
-                    returno |= PiecePositions.pawnAttack(BitBoard.bitscan(copy), side);
-                else 
-                    returno |= createPieceAttackBitBoard(board,BitBoard.bitscan(copy), (i+1) | side, side); 
-
-                copy ^= copy & -copy;
-            }
-        }
-
-        return returno;
-    }
-    public List<Move> generateMoves(Position board)
-    {
-
-        List<Move> moves = new List<Move>();
-        BitBoard[] allPieces = board.state.Peek().NextToMove == 8 ? board.whitePositions.positions : board.blackPositions.positions;
-
-        for (int i = 0; i < 6; i++)
-        {
-
-            BitBoard pieces = allPieces[i];
-            while (pieces > 0)
-            {
-
-                int piecePosition = BitBoard.bitscan(pieces);
-
-                switch (i)
-                {
-
-                    case 0: moves.AddRange(createJumpingMove(board, piecePosition)); break;
-                    case 1: moves.AddRange(createSlidingMove(board, piecePosition)); break;
-                    case 2: moves.AddRange(createJumpingMove(board, piecePosition)); break;
-                    case 3: moves.AddRange(createSlidingMove(board, piecePosition)); break;
-                    case 4: moves.AddRange(createSlidingMove(board, piecePosition)); break;
-                    case 5: moves.AddRange(createKingMove(board, piecePosition)); break;
-
+                BitBoard x;
+                if (i == 0){
+                    x = PiecePositions.pawnAttack(BitBoard.bitscan(copy), side);
+                    returno |= x;
+                    if(isWhite)
+                        totalWhiteAttackBitboards[i] |= x;
+                    else
+                        totalBlackAttackBitboards[i] |= x;
+                }
+                else{
+                    x = createPieceAttackBitBoard(board,BitBoard.bitscan(copy), (i+1) | side, side); 
+                    returno |= x;
+                    if(isWhite)
+                        totalWhiteAttackBitboards[i] |= x;
+                    else
+                    totalBlackAttackBitboards[i] |= x;
                 }
 
-                pieces ^= pieces & -pieces;
+                copy ^= copy & -copy;
 
             }
-
         }
 
-        return moves;
-
+        if(isWhite)
+            whiteAttackBitboard = returno;
+        else
+            blackAttackBitboard = returno;
     }
+    
     public BitBoard[] getAttackDefendMap(Position board)
     {
 
@@ -299,24 +327,26 @@ public class MoveGenerator
         return returno;
 
     }
-    private List<Move> createMoves(BitBoard attackMap, int startSquare, int piece)
+    private void createMoves(BitBoard attackMap, int startSquare, int piece, ref Span<Move> moves, ref int count)
     {
-
-        List<Move> moves = new();
 
         for (int i = 0; i < 64; i++)
         {
 
-            if ((attackMap & (BitBoard)i) > 0) moves.Add(new Move(startSquare, i, piece));
+            if ((attackMap & (BitBoard)i) > 0) {
+                moves[count] = new Move(startSquare, i, piece);
+                count++;
+                if(i == 0){
+                    Debug.WriteLine("HELP ME");
+                }
+            }
 
         }
-
-        return moves;
 
     }
 
 }
-public class Move
+public struct Move
 {
     public int SourceSquare { get; }
     public int TargetSquare { get; }

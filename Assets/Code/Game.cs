@@ -2,8 +2,8 @@
 /*
 null pruning maybe
 do the memory allocation state thing maybe
-piece square tables
-
+killer moves
+move ordering
 */
 using System;
 using System.Collections;
@@ -15,6 +15,7 @@ using UnityEditor.ShaderKeywordFilter;
 using UnityEngine;
 using UnityEngine.Assertions.Must;
 using UnityEngine.InputSystem;
+using UnityEngine.SocialPlatforms.Impl;
 using UnityEngine.UIElements;
 
 public class Game : MonoBehaviour
@@ -34,9 +35,8 @@ public class Game : MonoBehaviour
     private PlayerInput playerInput;
     private MoveGenerator moveGenerator = new();
     private TranspositionTable transpositionTable = new();
-    private List<Move> moves;
-    private Move optimalMove;
-    private float optimalScore = float.MaxValue;
+    private BitBoard whitePromoteRow = new(0xff00000000000000);
+    private BitBoard blackPromoteRow = new(0xff);
     private readonly Dictionary<string, short> posLookup = new Dictionary<string, short> { { "A", 1 }, { "B", 2 }, { "C", 3 }, { "D", 4 }, { "E", 5 }, { "F", 6 }, { "G", 7 }, { "H", 8 } };
     void Awake()
     {
@@ -61,8 +61,12 @@ public class Game : MonoBehaviour
     private void test(InputAction.CallbackContext context)
     {
 
+        Span<int> ints = stackalloc int[5];
+        ints[0] = 3;
+        ints[1] = 4;
+
         //Evaluator.EvaluateBoard(gameState);
-        Debug.Log(Evaluator.EvaluateBoard(gameState, moveGenerator));
+        // Debug.Log(Evaluator.EvaluateBoard(gameState, moveGenerator));
 
         // foreach (Move item in moveGenerator.generateMoves(gameState))
         // {
@@ -113,7 +117,7 @@ public class Game : MonoBehaviour
         int enPassantTarget = enPassantTargetParse(FEN[3]);
         int halfMoveClock = halfMoveClockParse(FEN[4]);
         int fullMoveCount = fullMoveCountParse(FEN[5]);
-        return new(null, castlings[0], castlings[1], side, enPassantTarget, halfMoveClock, fullMoveCount, -1, -1, -1);
+        return new(new(), castlings[0], castlings[1], side, enPassantTarget, halfMoveClock, fullMoveCount, -1, -1, -1);
 
     }
     //For initalizing game objects
@@ -139,8 +143,8 @@ public class Game : MonoBehaviour
                     if (board[index] >> 3 == 1)
                         gameObjectBoard[index].GetComponent<Renderer>().material.color = Color.white;
                     else
-                        gameObjectBoard[index].GetComponent<Renderer>().material.color = Color.gray;
-                    gameObjectBoard[index].transform.rotation = Quaternion.Euler(0, 180, 0);
+                        {gameObjectBoard[index].GetComponent<Renderer>().material.color = Color.gray;
+                    gameObjectBoard[index].transform.rotation = Quaternion.Euler(0, 180, 0);}
 
                 }
 
@@ -162,11 +166,12 @@ public class Game : MonoBehaviour
             if (Physics.Raycast(ray, out RaycastHit hit2, 10000, 1 << 6))
             {
 
+                Span<Move> playerMoves = stackalloc Move[32];
                 bool isLegal = false;
                 int selectedTileIndex = (int)(selectedTile.transform.position.x + selectedTile.transform.position.z * 8);
                 int toTileIndex = (int)(hit2.transform.position.x + hit2.transform.position.z * 8);
 
-                foreach (Move move in moves)
+                foreach (Move move in playerMoves)
                 {
 
                     isLegal = move.TargetSquare == toTileIndex ? true : isLegal;
@@ -182,7 +187,7 @@ public class Game : MonoBehaviour
                     updateBoardWithMove(currentMove);
                     selectedTile.GetComponent<Renderer>().material.color = lastTileColor;
 
-                    foreach (Move move in moves)
+                    foreach (Move move in playerMoves)
                     {
 
                         tiles[move.TargetSquare].GetComponent<Renderer>().material.color = (move.TargetSquare % 8 + move.TargetSquare / 8) % 2 == 0 ? Color.white : Color.black;
@@ -190,10 +195,10 @@ public class Game : MonoBehaviour
                     }
 
 
-                    //Bot's Move
-                    Move optimalMove = findBotMove(3, false);
-                    gameState.updateBoardWithMove(optimalMove);
-                    updateBoardWithMove(optimalMove);
+                    // Bot's Move
+                    // Move optimalMove = findBotMove(3, false);
+                    // gameState.updateBoardWithMove(optimalMove);
+                    // updateBoardWithMove(optimalMove);
 
                 }
 
@@ -203,7 +208,7 @@ public class Game : MonoBehaviour
                     isMakingMove = false;
                     selectedTile.GetComponent<Renderer>().material.color = lastTileColor;
 
-                    foreach (Move move in moves)
+                    foreach (Move move in playerMoves)
                     {
                         tiles[move.TargetSquare].GetComponent<Renderer>().material.color = (move.TargetSquare % 8 + move.TargetSquare / 8) % 2 == 0 ? Color.white : Color.black;
                     }
@@ -222,27 +227,29 @@ public class Game : MonoBehaviour
             lastTileColor = renderer.material.color;
             renderer.material.color = Color.yellow;
             isMakingMove = true;
+            Span<Move> moves = stackalloc Move[32];
+            int count = 0;
 
             switch (board[pos] & 7)
             {
 
                 case 1:
-                    moves = moveGenerator.createJumpingMove(gameState, pos);
+                    moveGenerator.createJumpingMove(gameState, pos,ref moves,ref count);
                     break;
                 case 2:
-                    moves = moveGenerator.createSlidingMove(gameState, pos);
+                    moveGenerator.createSlidingMove(gameState, pos,ref moves,ref count);
                     break;
                 case 3:
-                    moves = moveGenerator.createJumpingMove(gameState, pos);
+                    moveGenerator.createJumpingMove(gameState, pos,ref moves,ref count);
                     break;
                 case 4:
-                    moves = moveGenerator.createSlidingMove(gameState, pos);
+                    moveGenerator.createSlidingMove(gameState, pos,ref moves,ref count);
                     break;
                 case 5:
-                    moves = moveGenerator.createSlidingMove(gameState, pos);
+                    moveGenerator.createSlidingMove(gameState, pos,ref moves,ref count);
                     break;
                 case 6:
-                    moves = moveGenerator.createKingMove(gameState, pos);
+                    moveGenerator.createKingMove(gameState, pos,ref moves,ref count);
                     break;
 
             }
@@ -257,23 +264,27 @@ public class Game : MonoBehaviour
     }
     //Bot search
 
-    private Move findBotMove(int depth, bool isMax){
-        
-        Move returno = null;
-        float bestScore = isMax? float.NegativeInfinity:float.PositiveInfinity;
+    private Move findBotMove(int depth, bool isMax)
+    {
 
-        foreach (Move move in moveGenerator.generateMoves(gameState))
+        Move returno = new();
+        float bestScore = isMax ? float.NegativeInfinity : float.PositiveInfinity;
+        Span<Move> moves = stackalloc Move[218];
+        moveGenerator.generateMoves(gameState,ref moves);
+
+        foreach (Move move in moves)
         {
             gameState.updateBoardWithMove(move);
-            float evalScore = botSearch(depth-1, !isMax, gameState, float.NegativeInfinity, float.PositiveInfinity);
-            if((evalScore > bestScore && isMax) || (evalScore < bestScore && !isMax)){
+            float evalScore = botSearch(depth - 1, !isMax, gameState, float.NegativeInfinity, float.PositiveInfinity);
+            if ((evalScore > bestScore && isMax) || (evalScore < bestScore && !isMax))
+            {
                 bestScore = evalScore;
                 returno = move;
             }
             gameState.undoLastMove();
         }
 
-        if(returno != null) return returno;
+        if (returno.SourceSquare != 0 && returno.TargetSquare != 0) return returno;
         throw new IndexOutOfRangeException();
 
     }
@@ -288,12 +299,12 @@ public class Game : MonoBehaviour
         // if (transpositionTable.hasKey(key))
         //     return transpositionTable.table[key];
 
-        //Move localBestMove = null;
 
         if (isMax)
         {
 
-            List<Move> moves = moveGenerator.generateMoves(gameState);
+            Span<Move> moves = stackalloc Move[218];
+            moveGenerator.generateMoves(gameState, ref moves);
 
             foreach (Move move in moves)
             {
@@ -324,7 +335,8 @@ public class Game : MonoBehaviour
         else
         {
 
-            List<Move> moves = moveGenerator.generateMoves(gameState);
+            Span<Move> moves = stackalloc Move[218];
+            moveGenerator.generateMoves(gameState, ref moves);
 
             foreach (Move move in moves)
             {
@@ -353,10 +365,40 @@ public class Game : MonoBehaviour
 
     }
 
-    private void orderMoves(List<Move> moves){
+    private void orderMoves(ref Stack<Move> moves, float alpha, float beta)
+    {
+        moveGenerator.updateAttackBitboard(gameState, gameState.state.Peek().NextToMove ^ 24);
+        float[] moveScores = new float[218]; 
         foreach (Move move in moves)
         {
-            
+
+            float approxScore = 0;
+            int targetedPiece = gameState.PieceAt(move.TargetSquare);
+            PositionState state = gameState.state.Peek();
+            bool isWhite = state.NextToMove == 8;
+            int sideMulti = isWhite ? 1 : -1;
+
+            //MVV-LVA
+
+            if (targetedPiece > 0)
+            {
+                approxScore = sideMulti * (Evaluator.pieceValue(targetedPiece) - Evaluator.pieceValue(move.MovedPiece));
+            }
+
+            //pawn promotion
+
+            if ((move.MovedPiece == 9 && ((BitBoard)move.TargetSquare & whitePromoteRow) > 0) || (move.MovedPiece == 17 && ((BitBoard)move.TargetSquare & blackPromoteRow) > 0))
+            {
+                approxScore += 900 * sideMulti;
+            }
+
+            //don't move into pawn attacks
+
+            BitBoard enemyPawnBitboard = gameState.state.Peek().NextToMove == 16 ? moveGenerator.totalWhiteAttackBitboards[0] : moveGenerator.totalBlackAttackBitboards[0];
+            if (((BitBoard)move.TargetSquare & enemyPawnBitboard) > 0)
+                approxScore -= Evaluator.pieceValue(move.MovedPiece) * sideMulti;
+
+
         }
     }
 
@@ -385,9 +427,8 @@ public class Game : MonoBehaviour
                     if (piece >> 3 == 1)
                         gameObjectBoard[index].GetComponent<Renderer>().material.color = Color.white;
                     else
-                        gameObjectBoard[index].GetComponent<Renderer>().material.color = Color.gray;
-
-                    gameObjectBoard[index].transform.rotation = Quaternion.Euler(0, 180, 0);
+                        {gameObjectBoard[index].GetComponent<Renderer>().material.color = Color.gray;
+                    gameObjectBoard[index].transform.rotation = Quaternion.Euler(0, 180, 0);}
 
                 }
 
@@ -414,6 +455,37 @@ public class Game : MonoBehaviour
         updateGameBoardtoGameState();
 
     }
+
+    public static void Quicksort(System.Span<Move> values, int[] scores, int low, int high)
+    {
+        if (low < high)
+        {
+            int pivotIndex = Partition(values, scores, low, high);
+            Quicksort(values, scores, low, pivotIndex - 1);
+            Quicksort(values, scores, pivotIndex + 1, high);
+        }
+    }
+
+    static int Partition(System.Span<Move> values, int[] scores, int low, int high)
+    {
+        int pivotScore = scores[high];
+        int i = low - 1;
+
+        for (int j = low; j <= high - 1; j++)
+        {
+            if (scores[j] > pivotScore)
+            {
+                i++;
+                (values[i], values[j]) = (values[j], values[i]);
+                (scores[i], scores[j]) = (scores[j], scores[i]);
+            }
+        }
+        (values[i + 1], values[high]) = (values[high], values[i + 1]);
+        (scores[i + 1], scores[high]) = (scores[high], scores[i + 1]);
+
+        return i + 1;
+    }
+
     //FEN parse
     private string[] splitFEN(string FENPosition)
     {

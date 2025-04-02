@@ -482,7 +482,7 @@ public class PositionState
     public int PromotedToPiece { get; }
     public PositionState()
     {
-        AppliedMove = null;
+        AppliedMove = new();
         WhiteCastlingRights = CastlingFlags.Both;
         BlackCastlingRights = CastlingFlags.Both;
         NextToMove = 8;
